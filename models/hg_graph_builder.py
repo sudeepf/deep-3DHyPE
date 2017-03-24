@@ -109,28 +109,27 @@ class HGgraphBuilder_MultiGPU():
                                 utils.data_prep.volumize_vec_gpu(tensor_64[:,0],
                                                                  tensor_64[:,1],
                                                                  tensor_64[:,
-                                                                 2], FLAG))
-
+                                                                 2], 1, FLAG))
+                            
                             label.append(
                                 utils.data_prep.volumize_vec_gpu(
-                                    tensor_32[:, 0],
-                                    tensor_32[:, 1],
-                                    tensor_32[:,
-                                    2], FLAG))
+                                    tensor_32[:, 0, :, :],
+                                    tensor_32[:, 1, :, :],
+                                    tensor_32[:, 2, :, :], 2, FLAG))
 
                             label.append(
                                 utils.data_prep.volumize_vec_gpu(
                                     tensor_16[:, 0],
                                     tensor_16[:, 1],
                                     tensor_16[:,
-                                    2], FLAG))
+                                    2], 4, FLAG))
 
                             label.append(
                                 utils.data_prep.volumize_vec_gpu(
                                     tensor_8[:, 0],
                                     tensor_8[:, 1],
                                     tensor_8[:,
-                                    2], FLAG))
+                                    2], 8, FLAG))
                             
                             # label = utils.data_prep.prepare_output_gpu(y, steps, FLAG)
                             self.label.append(label)
@@ -170,10 +169,10 @@ class HGgraphBuilder_MultiGPU():
             
             self.loss /= len(map(int, FLAG.gpu_string.split('-')))
 
-            # utils.add_summary.add_all_joints(
-            #	utils.eval_utils.get_precision_MultiGPU(self.output, self.label, [],
-            #		                                        FLAG),
-            #	FLAG)
+            utils.add_summary.add_all_joints(
+            	utils.eval_utils.get_precision_MultiGPU(self.output, self.label, [],
+            		                                        FLAG),
+            	FLAG)
 
             # utils.add_summary.add_all(self._x[0], self.label[0], self.output[0],
             #                          self.loss)
@@ -217,12 +216,16 @@ class HGgraphBuilder_MultiGPU():
         # loss = tf.reduce_mean(tf.square(output - y))
         for i in xrange(len(y)):
             for j in xrange(4):
-                loss = tf.reduce_mean(tf.square(output[j][i] - y[ 3 -j]))
+                yy = tf.reshape(y[3-j], [FLAG.batch_size] + output[j][
+                    i].get_shape().as_list()[1:])
+                loss = tf.reduce_mean(tf.square(output[j][i] - yy))
                 # Calculate the total loss for the current tower.
                 tf.add_to_collection('losses', loss)
         
         # Add final loss
-        loss = tf.reduce_mean(tf.square(output[-1][0] - y[0]))
+        yy = tf.reshape(y[0], [FLAG.batch_size] + \
+                        output[-1][0].get_shape().as_list()[1:])
+        loss = tf.reduce_mean(tf.square(output[-1][0] - yy))
         tf.add_to_collection('losses', loss)
         # loss = tf.reduce_mean(tf.square(output[0][0] - y[3 - 0]))
         

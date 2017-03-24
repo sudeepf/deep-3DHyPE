@@ -120,8 +120,8 @@ def main(_):
                     vec_64.append(fd[1])
                     vec_32.append(fd[2])
                     vec_16.append(fd[3])
-                    vec_8.append(fd[3])
-                    gt.append(fd[4])
+                    vec_8.append(fd[4])
+                    #gt.append(fd[5])
                 
                 feed_dict_x = {i: d for i, d in zip(builder._x, _x)}
                 feed_dict_vec_64 = {i: d for i, d in
@@ -137,7 +137,7 @@ def main(_):
                 feed_dict_x.update(feed_dict_vec_32)
                 feed_dict_x.update(feed_dict_vec_16)
                 feed_dict_x.update(feed_dict_vec_8)
-                feed_dict_x.update(feed_dict_gt)
+                #feed_dict_x.update(feed_dict_gt)
                 
                 # print ("PreProcessing Time - incd reading", time.clock()-time_)
                 time_ = time.clock()
@@ -152,8 +152,12 @@ def main(_):
                     continue
                 
                 run_metadata = tf.RunMetadata()
-                loss_, _ = sess.run([builder.loss, builder.train_rmsprop],
+                loss_, _, data_out = sess.run([builder.loss,
+                                            builder.train_rmsprop,
+                                               builder.label ],
                                     feed_dict_x)
+                
+                
                 
                 # print("Time to feed and run the network", time.clock()-time_)
                 print("Grinding... Loss = " + str(loss_))
