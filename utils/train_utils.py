@@ -11,7 +11,6 @@ from scipy import misc
 import sys
 import numpy as np
 import time
-import hourglass_TF.src.stacked_hourglass as hg
 import matplotlib.pyplot as plt
 
 #Get all the custom helper util headers

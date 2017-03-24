@@ -8,37 +8,40 @@ import utils.data_prep
 
 class HGgraphBuilder():
 	def __init__(self, FLAG):
-		# first Build Model and define all the place holders
-		# This can go to another file under name model
-		# These parameters can be read from a external config file
-		print ("start build model...")
-		
-		# from string model struct to list model struct
-		steps = map(int, FLAG.structure_string.split('-'))
-		total_dim = np.sum(np.array(steps))
-		
-		self._x = tf.placeholder(tf.float32, [None, FLAG.image_res, FLAG.image_res,
-		                                      FLAG.image_c])
-		self.y = tf.placeholder(tf.float32, [None, FLAG.volume_res,
-		                                     FLAG.volume_res, FLAG.num_joints *
-		                                     total_dim])
-		
-		# If I ever write a handle for accuracy computation in TF
-		self.gt = tf.placeholder(tf.float32, [None, FLAG.num_joints,
-		                                      3])
-		
-		self.output = hg.stacked_hourglass(steps, 'stacked_hourglass')(self._x)
-		
-		# Defining Loss with root mean square error
-		self.loss = tf.reduce_mean(tf.square(self.output - self.y))
-		
-		self.optimizer = tf.train.RMSPropOptimizer(FLAG.learning_rate)
-		
-		self.train_step = tf.Variable(0, name='global_step', trainable=False)
-		
-		self.train_rmsprop = self.optimizer.minimize(self.loss, self.train_step)
-		
-		utils.add_summary.add_all(self._x, self.y, self.output, self.loss)
+		with tf.variable_scope('model_graph'):
+			# first Build Model and define all the place holders
+			# This can go to another file under name model
+			# These parameters can be read from a external config file
+			print ("start build model...")
+			
+			# from string model struct to list model struct
+			steps = map(int, FLAG.structure_string.split('-'))
+			total_dim = np.sum(np.array(steps))
+			
+			self._x = tf.placeholder(tf.float32, [None, FLAG.image_res, FLAG.image_res,
+			                                      FLAG.image_c])
+			self.y = tf.placeholder(tf.float32, [None, FLAG.volume_res,
+			                                     FLAG.volume_res, FLAG.num_joints *
+			                                     total_dim])
+			
+			# If I ever write a handle for accuracy computation in TF
+			self.gt = tf.placeholder(tf.float32, [None, FLAG.num_joints,
+			                                      3])
+			
+			self.output = hg.stacked_hourglass(steps, 'stacked_hourglass')(self._x)
+			
+			
+			
+			# Defining Loss with root mean square error
+			self.loss = tf.reduce_mean(tf.square(self.output - self.y))
+			
+			self.optimizer = tf.train.RMSPropOptimizer(FLAG.learning_rate)
+			
+			self.train_step = tf.Variable(0, name='global_step', trainable=False)
+			
+			self.train_rmsprop = self.optimizer.minimize(self.loss, self.train_step)
+			
+			utils.add_summary.add_all(self._x, self.y, self.output, self.loss)
 
 
 class HGgraphBuilder_MultiGPU():
@@ -92,7 +95,37 @@ class HGgraphBuilder_MultiGPU():
 							y = utils.data_prep.volumize_vec_gpu(tensor_x, tensor_y,
 							                                     tensor_z, FLAG)
 							
-							label = utils.data_prep.prepare_output_gpu(y, steps, FLAG)
+							label = []
+							yo = y
+							label.append(tf.reshape(yo, [FLAG.batch_size,
+							                                            FLAG.volume_res,
+							                                            FLAG.volume_res,
+							                                            FLAG.volume_res*
+							                                            FLAG.num_joints]))
+							yo1 = tf.nn.avg_pool3d(yo, [1, 2, 2, 2, 1], [1, 2, 2, 2, 1],
+								                 'VALID', name='to32')
+							label.append(tf.reshape(yo1								, [FLAG.batch_size,
+							                                            FLAG.volume_res/2,
+							                                            FLAG.volume_res/2,
+							                                            FLAG.volume_res*
+							                                            FLAG.num_joints/2]))
+							yo1 = tf.nn.avg_pool3d(yo1, [1, 2, 2, 2, 1], [1, 2, 2, 2, 1],
+							                       'VALID', name='to16')
+							label.append(tf.reshape(yo1 ,[FLAG.batch_size,
+							                                            FLAG.volume_res/4,
+							                                            FLAG.volume_res/4,
+							                                            FLAG.volume_res*
+							                                            FLAG.num_joints/4]))
+							yo1 = tf.nn.avg_pool3d(yo1, [1, 2, 2, 2, 1], [1, 2, 2, 2, 1],
+							                       'VALID', name='to8')
+							label.append(tf.reshape(
+								yo1, [FLAG.batch_size,
+							                                            FLAG.volume_res/8,
+							                                            FLAG.volume_res/8,
+							                                            FLAG.volume_res*
+							                                            FLAG.num_joints/8]))
+							
+							#label = utils.data_prep.prepare_output_gpu(y, steps, FLAG)
 							self.label.append(label)
 							
 							# If I ever write a handle for accuracy computation in TF
@@ -129,13 +162,13 @@ class HGgraphBuilder_MultiGPU():
 			
 			self.loss /= len(map(int, FLAG.gpu_string.split('-')))
 			
-			utils.add_summary.add_all_joints(
-				utils.eval_utils.get_precision_MultiGPU(self.output, self.label, [],
-				                                        FLAG),
-				FLAG)
+			#utils.add_summary.add_all_joints(
+			#	utils.eval_utils.get_precision_MultiGPU(self.output, self.label, [],
+		  #		                                        FLAG),
+			#	FLAG)
 			
-			utils.add_summary.add_all(self._x[0], self.label[0], self.output[0],
-			                          self.loss)
+			#utils.add_summary.add_all(self._x[0], self.label[0], self.output[0],
+			#                          self.loss)
 			# We must calculate the mean of each gradient. Note that this is the
 			# synchronization point across all towers.
 			grads = self.average_gradients(tower_grads)
@@ -173,10 +206,21 @@ class HGgraphBuilder_MultiGPU():
 		output = hg.stacked_hourglass(steps, 'stacked_hourglass')(_x)
 		
 		# Defining Loss with root mean square error
-		loss = tf.reduce_mean(tf.square(output - y))
+		# loss = tf.reduce_mean(tf.square(output - y))
+		for i in xrange(len(y)):
+			for j in xrange(4):
+				loss = tf.reduce_mean(tf.square(output[j][i] - y[3-j]))
+				# Calculate the total loss for the current tower.
+				tf.add_to_collection('losses', loss)
+		
+		# Add final loss
+		loss = tf.reduce_mean(tf.square(output[-1][0] - y[0]))
+		tf.add_to_collection('losses', loss)
+		#loss = tf.reduce_mean(tf.square(output[0][0] - y[3 - 0]))
+		
 		
 		# Calculate the total loss for the current tower.
-		tf.add_to_collection('losses', loss)
+		#tf.add_to_collection('losses', loss)
 		# Calculate the total loss for the current tower.
 		total_loss = tf.add_n(tf.get_collection('losses', scope), name='total_loss')
 		

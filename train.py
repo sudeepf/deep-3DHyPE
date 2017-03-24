@@ -12,7 +12,6 @@ from scipy import misc
 import sys
 import numpy as np
 import time
-import hourglass_TF.src.stacked_hourglass as hg
 import matplotlib.pyplot as plt
 
 #Get all the custom helper util headers
@@ -21,7 +20,7 @@ import utils.add_summary
 import utils.train_utils
 import utils.eval_utils
 import utils.get_flags
-import include.hg_graph_builder
+import models.hg_graph_builder
 
 
 #Read up and set up all the flag variables
@@ -39,19 +38,24 @@ def main(_):
 
   with tf.Graph().as_default():
 		
-		#builder = include.hg_graph_builder.HGgraphBuilder(FLAG)
+		builder = models.hg_graph_builder.HGgraphBuilder_MultiGPU(FLAG)
 
-		builder = include.hg_graph_builder.HGgraphBuilder_MultiGPU(FLAG)
+		#builder = models.hg_graph_builder.HGgraphBuilder(FLAG)
 		print ("build finished, There it stands, tall and strong...")
 		
+		graph_def = tf.get_default_graph().as_graph_def()
+		graphpb_txt = str(graph_def)
+		with open('graphpb.txt', 'w') as f:
+			f.write(graphpb_txt)
 		
+		#lol = lol2
 		config = tf.ConfigProto()
 		config.gpu_options.allow_growth = True
 	
 		saver = tf.train.Saver()
 	
-		#with tf.Session(config=config) as sess:
-		with tf.Session() as sess:
+		with tf.Session(config=config) as sess:
+		#with tf.Session() as sess:
 			merged = tf.summary.merge_all()
 	
 			# All the variable initialiezed in MoFoking RunTime
@@ -78,8 +82,8 @@ def main(_):
 				      (ckpt.model_checkpoint_path, global_step))
 			else:
 				print('No checkpoint file found')
-				#tf.global_variables_initializer().run()
-				saver.restore(sess, "./tensor_record//tmp/model1-2-4-64.ckpt")
+				tf.global_variables_initializer().run()
+				#saver.restore(sess, "./tensor_record//tmp/model1-2-4-64.ckpt")
 				print('model Initialized...')
 			
 	

@@ -6,6 +6,7 @@ class stacked_hourglass():
 		self.nb_stack = len(steps)
 		self.steps = steps
 		self.name = name
+		self.module_supervisions = [[],[],[],[],[]]
 	
 	def __call__(self, x):
 		with tf.name_scope(self.name) as scope:
@@ -26,32 +27,36 @@ class stacked_hourglass():
 			out_ = [None] * self.nb_stack
 			sum_ = [None] * self.nb_stack
 			with tf.variable_scope('_hourglass_0_with_supervision') as sc:
-				hg[0] = self._hourglass(r3, 4, 256, '_hourglass')
+				hg[0] = self._hourglass(r3, 4, 64*14, '_hourglass', 0)
 				ll[0] = self._conv_bn_relu(hg[0], 256, name='conv_1')
 				ll_[0] = self._conv(ll[0], 256, 1, 1, 'VALID', 'll')
-				out[0] = self._conv(ll[0], 14 * self.steps[0], 1, 1, 'VALID', 'out')
+				out[0] = self._conv(ll[0], 14 * 64, 1, 1, 'VALID', 'out')
 				out_[0] = self._conv(out[0], 256, 1, 1, 'VALID', 'out_')
 				sum_[0] = tf.add_n([ll_[0], out_[0], r3])
 			for i in range(1, self.nb_stack - 1):
 				with tf.variable_scope(
 							'_hourglass_' + str(i) + '_with_supervision') as sc:
-					hg[i] = self._hourglass(sum_[i - 1], 4, 256, '_hourglass')
+					hg[i] = self._hourglass(sum_[i - 1], 4, 64*14, '_hourglass', i)
 					ll[i] = self._conv_bn_relu(hg[i], 256, name='conv_1')
 					ll_[i] = self._conv(ll[i], 256, 1, 1, 'VALID', 'll')
-					out[i] = self._conv(ll[i], 14 * self.steps[i], 1, 1, 'VALID', 'out')
+					out[i] = self._conv(ll[i], 14 * 64, 1, 1, 'VALID', 'out')
 					out_[i] = self._conv(out[i], 256, 1, 1, 'VALID', 'out_')
 					sum_[i] = tf.add_n([ll_[i], out_[i], sum_[i - 1]])
 			with tf.variable_scope(
 						'_hourglass_' + str(self.nb_stack - 1) + '_with_supervision') as sc:
-				hg[self.nb_stack - 1] = self._hourglass(sum_[self.nb_stack - 2], 4, 256,
-				                                        '_hourglass')
+				hg[self.nb_stack - 1] = self._hourglass(sum_[self.nb_stack - 2], 4,
+				                                        64*14,
+				                                        '_hourglass' , self.nb_stack-1)
 				ll[self.nb_stack - 1] = self._conv_bn_relu(hg[self.nb_stack - 1], 256,
 				                                           name='conv_1')
-				out[self.nb_stack - 1] = self._conv(ll[self.nb_stack - 1],
+				self.module_supervisions[-1].append(self._conv(ll[self.nb_stack - 1],
 				                                    14 * self.steps[self.nb_stack - 1],
 				                                    1, 1,
-				                                    'VALID', 'out')
-			return tf.concat(out, axis=3)
+				                                    'VALID', 'out'))
+				
+			#return tf.concat(out, axis=3)
+			#return self.module_supervisions
+			return self.module_supervisions
 	
 	def _conv(self, inputs, nb_filter, kernel_size=1, strides=1, pad='VALID',
 	          name='conv'):
@@ -113,21 +118,39 @@ class stacked_hourglass():
 			_skip_layer = self._skip_layer(inputs, nb_filter_out)
 			return tf.add(_skip_layer, _conv_block)
 	
-	def _hourglass(self, inputs, n, nb_filter_res, name='_hourglass'):
+	def _hourglass(self, inputs, n, nb_filter_res, name='_hourglass', rank_=0):
 		with tf.variable_scope(name) as scope:
-			# Upper branch
-			up1 = self._residual_block(inputs, nb_filter_res, 'up1')
-			# Lower branch
-			pool = tf.contrib.layers.max_pool2d(inputs, [2, 2], [2, 2], 'VALID')
-			low1 = self._residual_block(pool, nb_filter_res, 'low1')
+			
 			if n > 1:
-				low2 = self._hourglass(low1, n - 1, nb_filter_res, 'low2')
+				# Upper branch
+				up1 = self._residual_block(inputs, nb_filter_res, 'up1')
+				# Lower branch
+				pool = tf.contrib.layers.max_pool2d(inputs, [2, 2], [2, 2], 'VALID')
+				low1 = self._residual_block(pool, nb_filter_res/2, 'low1')
+				low2 = self._hourglass(low1, n - 1, nb_filter_res/2, 'low2', rank_)
+				low2 = tf.add(low2,up1,'merged1')
 			else:
-				low2 = self._residual_block(low1, nb_filter_res, 'low2')
+				low1 = self._residual_block(inputs, nb_filter_res, 'low1_1')
+				low2 = self._residual_block(low1, nb_filter_res, 'low2_1')
+			
 			low3 = self._residual_block(low2, nb_filter_res, 'low3')
-			low4 = tf.image.resize_nearest_neighbor(low3, tf.shape(low3)[1:3] * 2,
-			                                        name='upsampling')
+			
+			lower1 = self._residual_block(low3, nb_filter_res, 'lower1')
+			
+			self.module_supervisions[n-1].append(lower1)
+			
 			if n < 4:
-				return tf.add(up1, low4, name='merge')
+				lower2 = tf.image.resize_nearest_neighbor(lower1, tf.shape(lower1)[1:3] * 2,
+			                                        name='upsampling_2')
+				lower2 = self._residual_block(lower2, nb_filter_res*2, 'lower2')
+				low4 = tf.image.resize_nearest_neighbor(low3, tf.shape(low3)[1:3] * 2,
+				                                        name='upsampling_1')
+				low4 = self._residual_block(low4, nb_filter_res*2, 'low4')
 			else:
-				return self._residual_block(tf.add(up1, low4), nb_filter_res, 'low4')
+				lower2 = self._residual_block(lower1, nb_filter_res, 'lower2')
+				low4 = self._residual_block(low3, nb_filter_res , 'low4')
+			
+			
+				
+			if n < 5:
+				return tf.add(lower2, low4, name='merge')
