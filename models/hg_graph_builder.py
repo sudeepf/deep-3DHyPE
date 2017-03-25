@@ -169,10 +169,11 @@ class HGgraphBuilder_MultiGPU():
             
             self.loss /= len(map(int, FLAG.gpu_string.split('-')))
 
-            utils.add_summary.add_all_joints(
-            	utils.eval_utils.get_precision_MultiGPU(self.output, self.label, [],
-            		                                        FLAG),
-            	FLAG)
+            #utils.add_summary.add_all_joints(
+            #	utils.eval_utils.get_precision_MultiGPU(self.output,
+            # self.label, [],
+            #		                                        FLAG),
+            #	FLAG)
 
             # utils.add_summary.add_all(self._x[0], self.label[0], self.output[0],
             #                          self.loss)

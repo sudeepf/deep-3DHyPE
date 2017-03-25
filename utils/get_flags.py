@@ -64,7 +64,7 @@ def get_flags(config_file = None):
 	                            """Total number of joints tobe estimated""")
 	tf.app.flags.DEFINE_integer('mul_factor', 1,
 	                            """factor to be mult with Z data to conv to cm""")
-	tf.app.flags.DEFINE_float('sigma', 2,
+	tf.app.flags.DEFINE_float('sigma', 1,
 	                            """sigma value for probability distribution in
 	                            pixels""")
 	tf.app.flags.DEFINE_integer('image_res', 256,

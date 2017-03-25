@@ -143,7 +143,8 @@ def main(_):
                 time_ = time.clock()
                 
                 if step % 10 == 1:
-                    summary, loss_, _ = sess.run([merged, builder.loss,
+                    summary, loss_, _ = sess.run([merged,
+                                                            builder.loss,
                                                   builder.train_rmsprop],
                                                  feed_dict_x)
                     
@@ -153,15 +154,13 @@ def main(_):
                 
                 run_metadata = tf.RunMetadata()
                 loss_, _, data_out = sess.run([builder.loss,
-                                            builder.train_rmsprop,
-                                               builder.label ],
-                                    feed_dict_x)
-                
-                
+                                            builder.train_rmsprop,builder.label],
+                                            feed_dict_x)
                 
                 # print("Time to feed and run the network", time.clock()-time_)
                 print("Grinding... Loss = " + str(loss_))
-            
+                
+
             train_writer.close()
             test_writer.close()
 
