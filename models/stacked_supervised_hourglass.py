@@ -21,7 +21,8 @@ class stacked_hourglass():
                 pool = tf.contrib.layers.max_pool2d(r1, [2, 2], [2, 2], 'VALID',
                                                     scope=scope)
                 r2 = self._residual_block(pool, 128, 'r2')
-                r3 = self._residual_block(r2, 256, 'r3')
+                r3_h = self._residual_block(r2, 256, 'r3_h')
+                r3 = self._residual_block(r3_h, 256, 'r3')
             hg = [None] * self.nb_stack
             ll = [None] * self.nb_stack
             ll_ = [None] * self.nb_stack
@@ -143,10 +144,13 @@ class stacked_hourglass():
             if n > 1:
                 # Upper branch
                 up1 = self._residual_block(inputs, nb_filter_res, 'up1')
+                up1 = self._residual_block(up1, nb_filter_res, 'up1_1')
                 # Lower branch
                 pool = tf.contrib.layers.max_pool2d(inputs, [2, 2], [2, 2],
                                                     'VALID')
                 low1 = self._residual_block(pool, nb_filter_res / 2, 'low1')
+                low1 = self._residual_block(low1, nb_filter_res / 2, 'low1_1')
+                
                 low2 = self._hourglass(low1, n - 1, nb_filter_res / 2, 'low2',
                                        rank_)
                 low2 = tf.add(low2, up1, 'merged1')
@@ -155,6 +159,7 @@ class stacked_hourglass():
                 low2 = self._residual_block(low1, nb_filter_res, 'low2_1')
             
             low3 = self._residual_block(low2, nb_filter_res, 'low3')
+            low3 = self._residual_block(low3, nb_filter_res, 'low3_1')
             
             lower1 = self._residual_block(low3, nb_filter_res, 'lower1')
             
@@ -171,9 +176,11 @@ class stacked_hourglass():
                                                         tf.shape(low3)[1:3] * 2,
                                                         name='upsampling_1')
                 low4 = self._residual_block(low4, nb_filter_res * 2, 'low4')
+                low4 = self._residual_block(low4, nb_filter_res * 2, 'low4_1')
             else:
                 lower2 = self._residual_block(lower1, nb_filter_res, 'lower2')
                 low4 = self._residual_block(low3, nb_filter_res, 'low4')
+                low4 = self._residual_block(low4, nb_filter_res, 'low4_1')
             
             if n < 5:
                 return tf.add(lower2, low4, name='merge')

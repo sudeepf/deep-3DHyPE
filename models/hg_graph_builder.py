@@ -71,6 +71,10 @@ class HGgraphBuilder_MultiGPU():
             self.tensor_16 = []
             self.tensor_32 = []
             self.tensor_64 = []
+            self.tensor_8_2d = []
+            self.tensor_16_2d = []
+            self.tensor_32_2d = []
+            self.tensor_64_2d = []
             steps = map(int, FLAG.structure_string.split('-'))
             total_dim = np.sum(np.array(steps))
             
@@ -88,48 +92,92 @@ class HGgraphBuilder_MultiGPU():
                                                  FLAG.image_res,
                                                  FLAG.image_c])
                             
-                            tensor_8 = tf.placeholder(tf.float32,
-                                                      [FLAG.batch_size,
-                                                       3, FLAG.num_joints,
-                                                       8])
-                            tensor_16 = tf.placeholder(tf.float32,
-                                                       [FLAG.batch_size, 3,
-                                                        FLAG.num_joints,
-                                                        16])
-                            tensor_32 = tf.placeholder(tf.float32,
-                                                       [FLAG.batch_size,
-                                                        3, FLAG.num_joints,
-                                                        32])
-                            tensor_64 = tf.placeholder(tf.float32,
-                                                       [FLAG.batch_size,
-                                                        3, FLAG.num_joints,
-                                                        64])
-                            
-                            label.append(
-                                utils.data_prep.volumize_vec_gpu(tensor_64[:,0],
-                                                                 tensor_64[:,1],
-                                                                 tensor_64[:,
-                                                                 2], 1, FLAG))
-                            
-                            label.append(
-                                utils.data_prep.volumize_vec_gpu(
-                                    tensor_32[:, 0, :, :],
-                                    tensor_32[:, 1, :, :],
-                                    tensor_32[:, 2, :, :], 2, FLAG))
+                            print (FLAG.train_2d)
+                            if FLAG.train_2d == True:
+                                
+                                print ('2D is ON')
+                                tensor_8 = tf.placeholder(tf.float32,
+                                                          [FLAG.batch_size,
+                                                           2, FLAG.num_joints,
+                                                           8])
+                                tensor_16 = tf.placeholder(tf.float32,
+                                                           [FLAG.batch_size, 2,
+                                                            FLAG.num_joints,
+                                                            16])
+                                tensor_32 = tf.placeholder(tf.float32,
+                                                           [FLAG.batch_size,
+                                                            2, FLAG.num_joints,
+                                                            32])
+                                tensor_64 = tf.placeholder(tf.float32,
+                                                           [FLAG.batch_size,
+                                                            2, FLAG.num_joints,
+                                                            64])
 
-                            label.append(
-                                utils.data_prep.volumize_vec_gpu(
-                                    tensor_16[:, 0],
-                                    tensor_16[:, 1],
-                                    tensor_16[:,
-                                    2], 4, FLAG))
+                                label.append(
+                                    utils.data_prep.heatmap_vec_gpu(
+                                        tensor_64[:, 0],
+                                        tensor_64[:, 1], 1, FLAG))
 
-                            label.append(
-                                utils.data_prep.volumize_vec_gpu(
-                                    tensor_8[:, 0],
-                                    tensor_8[:, 1],
-                                    tensor_8[:,
-                                    2], 8, FLAG))
+                                label.append(
+                                    utils.data_prep.heatmap_vec_gpu(
+                                        tensor_32[:, 0],
+                                        tensor_32[:, 1], 2, FLAG))
+
+                                label.append(
+                                    utils.data_prep.heatmap_vec_gpu(
+                                        tensor_16[:, 0],
+                                        tensor_16[:, 1], 4, FLAG))
+
+                                label.append(
+                                    utils.data_prep.heatmap_vec_gpu(
+                                        tensor_8[:, 0],
+                                        tensor_8[:, 1], 8, FLAG))
+                            
+                            else:
+                                
+                                tensor_8 = tf.placeholder(tf.float32,
+                                                          [FLAG.batch_size,
+                                                           3, FLAG.num_joints,
+                                                           8])
+                                tensor_16 = tf.placeholder(tf.float32,
+                                                           [FLAG.batch_size, 3,
+                                                            FLAG.num_joints,
+                                                            16])
+                                tensor_32 = tf.placeholder(tf.float32,
+                                                           [FLAG.batch_size,
+                                                            3, FLAG.num_joints,
+                                                            32])
+                                tensor_64 = tf.placeholder(tf.float32,
+                                                           [FLAG.batch_size,
+                                                            3, FLAG.num_joints,
+                                                            64])
+                            
+                                label.append(
+                                    utils.data_prep.volumize_vec_gpu(
+                                         tensor_64[:,0],
+                                         tensor_64[:,1],
+                                         tensor_64[:,
+                                         2], 1, FLAG))
+                            
+                                label.append(
+                                    utils.data_prep.volumize_vec_gpu(
+                                        tensor_32[:, 0],
+                                        tensor_32[:, 1],
+                                        tensor_32[:, 2], 2, FLAG))
+    
+                                label.append(
+                                    utils.data_prep.volumize_vec_gpu(
+                                        tensor_16[:, 0],
+                                        tensor_16[:, 1],
+                                        tensor_16[:,
+                                        2], 4, FLAG))
+    
+                                label.append(
+                                    utils.data_prep.volumize_vec_gpu(
+                                        tensor_8[:, 0],
+                                        tensor_8[:, 1],
+                                        tensor_8[:,
+                                        2], 8, FLAG))
                             
                             # label = utils.data_prep.prepare_output_gpu(y, steps, FLAG)
                             self.label.append(label)
@@ -170,13 +218,12 @@ class HGgraphBuilder_MultiGPU():
             self.loss /= len(map(int, FLAG.gpu_string.split('-')))
 
             #utils.add_summary.add_all_joints(
-            #	utils.eval_utils.get_precision_MultiGPU(self.output,
-            # self.label, [],
-            #		                                        FLAG),
-            #	FLAG)
+            #	utils.eval_utils.get_precision_MultiGPU(self.output[0],
+            # self.label, [], FLAG), FLAG)
 
-            # utils.add_summary.add_all(self._x[0], self.label[0], self.output[0],
-            #                          self.loss)
+            utils.add_summary.add_all(self._x[0], tf.reduce_sum(self.output[
+                                                                    0][-1][0],
+                                                    axis=-1),  self.loss)
             # We must calculate the mean of each gradient. Note that this is the
             # synchronization point across all towers.
             grads = self.average_gradients(tower_grads)
@@ -216,19 +263,36 @@ class HGgraphBuilder_MultiGPU():
         # Defining Loss with root mean square error
         # loss = tf.reduce_mean(tf.square(output - y))
         for i in xrange(len(y)):
-            for j in xrange(4):
-                yy = tf.reshape(y[3-j], [FLAG.batch_size] + output[j][
-                    i].get_shape().as_list()[1:])
-                loss = tf.reduce_mean(tf.square(output[j][i] - yy))
+            for j in xrange(len(steps)):
+                
+                shape_ = output[i][j].get_shape().as_list()
+                out = tf.reshape(output[i][j], [FLAG.batch_size] + shape_[1:-1]
+                                 +[shape_[-1] / FLAG.num_joints,
+                                  FLAG.num_joints])
+                if FLAG.train_2d == True:
+                    out = tf.reduce_sum(out, axis=-2)
+                    
+                yy = tf.reshape(y[3-i], out.get_shape().as_list())
+
+                loss = tf.reduce_mean(tf.square(out - yy))
                 # Calculate the total loss for the current tower.
                 tf.add_to_collection('losses', loss)
         
         # Add final loss
-        yy = tf.reshape(y[0], [FLAG.batch_size] + \
-                        output[-1][0].get_shape().as_list()[1:])
-        loss = tf.reduce_mean(tf.square(output[-1][0] - yy))
+        shape_ = output[-1][0].get_shape().as_list()
+        out = tf.reshape(output[-1][0], [FLAG.batch_size] + shape_[1:-1]
+                         + [shape_[-1] / FLAG.num_joints,
+                            FLAG.num_joints])
+
+
+        if FLAG.train_2d == True:
+            out = tf.reduce_sum(out, axis=-2)
+
+        yy = tf.reshape(y[0], out.get_shape().as_list())
+
+        loss = tf.reduce_mean(tf.square(out - yy))
+        # Calculate the total loss for the current tower.
         tf.add_to_collection('losses', loss)
-        # loss = tf.reduce_mean(tf.square(output[0][0] - y[3 - 0]))
         
         
         # Calculate the total loss for the current tower.
