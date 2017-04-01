@@ -222,7 +222,7 @@ class HGgraphBuilder_MultiGPU():
             # self.label, [], FLAG), FLAG)
 
             utils.add_summary.add_all(self._x[0], tf.reduce_sum(self.output[
-                                                                    0][-1][0],
+                                                                    0][-1][0][0],
                                                     axis=-1),  self.loss)
             # We must calculate the mean of each gradient. Note that this is the
             # synchronization point across all towers.

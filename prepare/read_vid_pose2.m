@@ -1,4 +1,4 @@
-path = ['/home/sudeep/projects/AmazonLab126/deep-3DHyPE/Dataset_2d/'];
+path = ['/home/capstone/Sudeep/Capstone/deep-3DHyPE/Dataset_2d/'];
 vPath = [path,'/images/'];
 pPath = [path,'/mpii_human_pose_v1_u12_1.mat'];
 fNames = dir(vPath);

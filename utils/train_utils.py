@@ -86,7 +86,6 @@ class DataHolder():
             image_b, pose2_b, _ = utils.data_prep.crop_data_top_down(
                 image_b,
                 pose2_b, None, self.FLAG)
-        
             image, pose2, vec_64, vec_32, vec_16, vec_8 = \
                 utils.data_prep.get_vector_gt_2d(image_b, pose2_b,
                                               self.FLAG)

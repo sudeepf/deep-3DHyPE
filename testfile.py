@@ -76,8 +76,8 @@ def main(_):
                     # gt.append(fd[5])
                 
                 print(_x[0][0].shape)
-                plt.imshow(_x[0][0])
-                plt.show()
+                #plt.imshow(_x[0][0])
+                #plt.show()
                 # print ("PreProcessing Time - incd reading", time.clock()-time_)
                 time_ = time.clock()
                 
