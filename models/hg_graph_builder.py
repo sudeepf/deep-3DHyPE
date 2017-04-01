@@ -219,19 +219,32 @@ class HGgraphBuilder_MultiGPU():
         # Defining Loss with root mean square error
         # loss = tf.reduce_mean(tf.square(output - y))
         for i in xrange(len(y)):
-            for j in xrange(4):
-                yy = tf.reshape(y[3-j], [FLAG.batch_size] + output[j][
-                    i].get_shape().as_list()[1:])
-                loss = tf.reduce_mean(tf.square(output[j][i] - yy))
+            for j in xrange(len(steps)):
+        
+                shape_ = output[i][j].get_shape().as_list()
+                out = tf.reshape(output[i][j], [FLAG.batch_size] + shape_[1:-1]
+                                 + [shape_[-1] / FLAG.num_joints,
+                                    FLAG.num_joints])
+        
+                yy = tf.reshape(y[3 - i], out.get_shape().as_list())
+        
+                loss = tf.reduce_mean(tf.square(out - yy))
                 # Calculate the total loss for the current tower.
                 tf.add_to_collection('losses', loss)
         
-        # Add final loss
-        yy = tf.reshape(y[0], [FLAG.batch_size] + \
-                        output[-1][0].get_shape().as_list()[1:])
-        loss = tf.reduce_mean(tf.square(output[-1][0] - yy))
-        tf.add_to_collection('losses', loss)
-        # loss = tf.reduce_mean(tf.square(output[0][0] - y[3 - 0]))
+                # Add final loss
+        shape_ = output[-1][0].get_shape().as_list()
+        out = tf.reshape(output[-1][0], [FLAG.batch_size] + shape_[1:-1]
+                         + [shape_[-1] / FLAG.num_joints,
+                            FLAG.num_joints])
+
+        
+        yy = tf.reshape(y[0], out.get_shape().as_list())
+
+        loss = tf.reduce_mean(tf.square(out - yy))
+        # Calculate the total loss for the current tower.
+
+        tf.add_to_collection('losses', loss)# loss = tf.reduce_mean(tf.square(output[0][0] - y[3 - 0]))
         
         
         # Calculate the total loss for the current tower.

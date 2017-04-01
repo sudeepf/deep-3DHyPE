@@ -64,7 +64,7 @@ def get_summary_writer(FLAG, sess):
                    '/test/', sess.graph)
 
 
-def add_all(x, y, output, loss):
+def add_all(x, output, loss):
     tf.summary.scalar('loss', loss)
     # variable_summaries(y, 'label')
     variable_summaries(output, 'output')
