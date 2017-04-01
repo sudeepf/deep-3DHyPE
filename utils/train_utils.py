@@ -120,7 +120,7 @@ class DataHolder():
         offset = min((self.train_iter * self.FLAG.batch_size), \
                      (self.train_data_size - self.FLAG.batch_size))
         mask_ = self.mask_train[offset:(offset + self.FLAG.batch_size)]
-        print (mask_)
+        
         if self.FLAG.train_2d == False:
             fd = self.get_dict(True, self.imgFiles[mask_], self.pose2[mask_],
                                self.pose3[mask_])

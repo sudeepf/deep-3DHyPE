@@ -62,7 +62,7 @@ def get_batch(imgFiles, pose2, pose3=None):
     for name in imgFiles:
         ii += 1
         im = misc.imread(name[:])
-        data.append(im/np.max(np.max(np.max(im))))
+        data.append(im/np.max(np.max(np.max(np.float32(im)))))
     return data, pose2, pose3
 
 
