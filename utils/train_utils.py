@@ -80,13 +80,14 @@ class DataHolder():
         total_dim = np.sum(np.array(steps))
         
         if pose3 == None:
+            
             image_b, pose2_b, _ = utils.data_prep.get_batch(imgFiles,
                                                               pose2)
-        
+            
             image_b, pose2_b, _ = utils.data_prep.crop_data_top_down(
                 image_b,
                 pose2_b, None, self.FLAG)
-        
+           
             image, pose2, vec_64, vec_32, vec_16, vec_8 = \
                 utils.data_prep.get_vector_gt_2d(image_b, pose2_b,
                                               self.FLAG)
@@ -119,7 +120,7 @@ class DataHolder():
         offset = min((self.train_iter * self.FLAG.batch_size), \
                      (self.train_data_size - self.FLAG.batch_size))
         mask_ = self.mask_train[offset:(offset + self.FLAG.batch_size)]
-        
+        print (mask_)
         if self.FLAG.train_2d == False:
             fd = self.get_dict(True, self.imgFiles[mask_], self.pose2[mask_],
                                self.pose3[mask_])

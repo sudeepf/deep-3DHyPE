@@ -60,7 +60,7 @@ def get_batch(imgFiles, pose2, pose3=None):
     data = []
     for name in imgFiles:
         im = misc.imread(name[:])
-        data.append(im)
+        data.append(im/np.max(np.max(np.max(im))))
     return np.array(data), pose2, pose3
 
 
@@ -110,12 +110,14 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
         images_.append(im_)
         pose2_.append(p2)
         
-        if FLAG.train_2d==True:
-            return images_, pose2_, None
+        
         
         if pose3 is not None:
             pose3[ii, :, :2] -= min_
             pose3_.append(pose3[ii, :, :2])
+            
+    if FLAG.train_2d == True:
+        return images_, pose2_, None
         
     return images_, pose2_, pose3_
 
