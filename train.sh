@@ -6,7 +6,7 @@ nice -n 10 python train_2d.py \
 --joint_prob_max=1 \
 --sigma=0.5 \
 --gpu_string=0-1 \
---learning_rate=2e-6 \
+--learning_rate=2e-4 \
 --train_2d=True \
 --dataset_dir=./Dataset_2d/
 
