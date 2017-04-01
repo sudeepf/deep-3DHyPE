@@ -61,7 +61,7 @@ class stacked_hourglass():
                     self._conv(ll[self.nb_stack - 1],
                                14 * self.steps[self.nb_stack - 1],
                                1, 1,
-                               'VALID', 'out')), name='sigmoid')
+                               'VALID', 'out'), name='sigmoid'))
             
             # return tf.concat(out, axis=3)
             # return self.module_supervisions
