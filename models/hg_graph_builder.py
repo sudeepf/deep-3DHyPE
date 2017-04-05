@@ -220,10 +220,24 @@ class HGgraphBuilder_MultiGPU():
             #utils.add_summary.add_all_joints(
             #	utils.eval_utils.get_precision_MultiGPU(self.output[0],
             # self.label, [], FLAG), FLAG)
-
-            utils.add_summary.add_all(self._x[0], tf.reduce_sum(self.output[
-                                                                    0][-1][0][0],
-                                                    axis=-1),  self.loss)
+            label_sum = None
+            
+            if FLAG.train_2d == True:
+                label_sum = tf.reduce_sum(self.label[0][0][0],
+                                                    axis=-1)
+                utils.add_summary.add_all(self._x[0], label_sum,
+                                          tf.reduce_sum(self.output[
+                                                            0][-1][0][0],
+                                                        axis=-1), self.loss)
+            else:
+                label_sum = tf.reduce_sum(tf.reduce_sum(self.label[0][0][0],
+                                                        axis=-1), axis=-1)
+                utils.add_summary.add_all(self._x[0], label_sum,
+                                      tf.reduce_sum(self.output[
+                                                        0][-1][0][0],
+                                                    axis=-1), self.loss)
+    
+            
             # We must calculate the mean of each gradient. Note that this is the
             # synchronization point across all towers.
             grads = self.average_gradients(tower_grads)
