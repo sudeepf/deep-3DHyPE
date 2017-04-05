@@ -62,7 +62,7 @@ def get_batch(imgFiles, pose2, pose3=None):
     for name in imgFiles:
         ii += 1
         im = misc.imread(name[:])
-        data.append(im/np.max(np.max(np.max(np.float32(im)))))
+        data.append(im)
     return data, pose2, pose3
 
 
@@ -137,7 +137,7 @@ def data_vis(image, pose2, pose3, Cam_C, ind):
 
 
 def gaussian(x, mu, sig, max_prob=1):
-    const_ = 1. / (sig * 2.50599)
+    const_ = 1. #/ (sig * 2.50599)
     return max_prob * const_ \
            * np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
 

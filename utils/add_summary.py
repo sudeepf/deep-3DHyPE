@@ -64,13 +64,14 @@ def get_summary_writer(FLAG, sess):
                    '/test/', sess.graph)
 
 
-def add_all(x, output, loss):
+def add_all(x, input, output, loss):
     tf.summary.scalar('loss', loss)
     #variable_summaries(y, 'label')
     variable_summaries(output, 'output')
+    variable_summaries(input, 'input')
     # img = tf.image.convert_image_dtype(img, dtype=tf.uint8)
     img = tf.image.resize_images(x[0:1], [32, 32])
-    image_summaries(img * 255, 'input')
+    image_summaries(tf.image.convert_image_dtype(img, dtype=tf.uint8), 'input_')
     
     # get heatmap on output
     img = tf.reshape(output, (1, 64, 64, 1))
@@ -80,3 +81,13 @@ def add_all(x, output, loss):
     img = tf.image.grayscale_to_rgb(img, name=None)
     img = tf.image.convert_image_dtype(img, dtype=tf.uint8)
     image_summaries(img, 'output_heatmap')
+
+    # get heatmap on input
+    print (input.get_shape().as_list())
+    img = tf.reshape(input, (1, 64, 64, 1))
+    x_min = tf.reduce_min(img)
+    x_max = tf.reduce_max(img)
+    img = (img - x_min) / (x_max - x_min)
+    img = tf.image.grayscale_to_rgb(img, name=None)
+    img = tf.image.convert_image_dtype(img, dtype=tf.uint8)
+    image_summaries(img, 'input_heatmap')
