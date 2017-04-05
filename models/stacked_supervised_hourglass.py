@@ -143,23 +143,24 @@ class stacked_hourglass():
             
             if n > 1:
                 # Upper branch
-                up1 = self._residual_block(inputs, (256*64) / nb_filter_res, \
+                up1 = self._residual_block(inputs, (256*64*14) /
+                                           nb_filter_res, \
                       'up1')
                 # Lower branch
                 pool = tf.contrib.layers.max_pool2d(inputs, [2, 2], [2, 2],
                                                     'VALID')
-                low1 = self._residual_block(pool, (256*64*2) / nb_filter_res,
+                low1 = self._residual_block(pool, (256*64*2*14) / nb_filter_res,
                                             'low1')
                 
                 low2 = self._hourglass(low1, n - 1, nb_filter_res / 2, 'low2',
                                        rank_)
                 low2 = tf.concat([low2, up1], axis=-1, name = 'merged1')
             else:
-                low1 = self._residual_block(inputs, (256*64) / nb_filter_res, 'low1_1')
-                low2 = self._residual_block(low1, (256*64) / nb_filter_res, 'low2_1')
+                low1 = self._residual_block(inputs, (256*64*14) / nb_filter_res, 'low1_1')
+                low2 = self._residual_block(low1, (256*64*14) / nb_filter_res, 'low2_1')
             
-            low3 = self._residual_block(low2, (256*64) / nb_filter_res, 'low3')
-            low3 = self._conv_bn_relu(low3, (256*64) / nb_filter_res,
+            low3 = self._residual_block(low2, (256*64*14) / nb_filter_res, 'low3')
+            low3 = self._conv_bn_relu(low3, (256*64*14) / nb_filter_res,
                                       name='low3_1')
             
             lower1 = self._conv(low3, nb_filter_res, 1, 1, 'VALID', 'lower1')
@@ -171,18 +172,18 @@ class stacked_hourglass():
                                                           tf.shape(lower1)[
                                                           1:3] * 2,
                                                           name='upsampling_2')
-                lower2 = self._conv_bn_relu(lower2, ((256*64) / nb_filter_res) * 2,
+                lower2 = self._conv_bn_relu(lower2, ((256*64*14) / nb_filter_res) * 2,
                                              name = 'lower2')
                 low4 = tf.image.resize_nearest_neighbor(low3,
                                                         tf.shape(low3)[1:3] * 2,
                                                         name='upsampling_1')
-                low4 = self._conv_bn_relu(low4, ((256*64) / nb_filter_res)
+                low4 = self._conv_block(low4, ((256*64*14) / nb_filter_res)
                                             * 2, name = 'low4_1')
             else:
-                lower2 = self._conv_bn_relu(lower1, (256*64) / nb_filter_res,
+                lower2 = self._conv_bn_relu(lower1, (256*64*14) / nb_filter_res,
                                             name='lower2')
-                low4 = self._residual_block(low3, (256*64) / nb_filter_res, 'low4')
-                low4 = self._conv_bn_relu(low4, (256*64) / nb_filter_res,
+                low4 = self._residual_block(low3, (256*64*14) / nb_filter_res, 'low4')
+                low4 = self._conv_block(low4, (256*64*14) / nb_filter_res,
                                           name='low4_1')
             
             if n < 5:
