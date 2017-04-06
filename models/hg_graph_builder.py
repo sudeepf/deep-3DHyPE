@@ -87,6 +87,8 @@ class HGgraphBuilder_MultiGPU():
                             # constructs the entire CIFAR model but shares the variables across
                             # all towers.
                             
+                            
+                            
                             _x = tf.placeholder(tf.float32,
                                                 [None, FLAG.image_res,
                                                  FLAG.image_res,

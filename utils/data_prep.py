@@ -90,7 +90,7 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
         #print(np.max(im))
         imSize = min(np.shape(im)[1], np.shape(im)[0])
         p2 = pose2[ii]  # + Cam_C
-        p2_v = p2[np.sum(p2,-1) > 0]
+        
         #plt.imshow(im)
         #plt.scatter(p2_v[:, 0], p2_v[:, 1])
         #plt.show()
@@ -100,15 +100,16 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
         midd = np.array([np.shape(im)[1], np.shape(im)[0]]) / 2
         rotate_rad = (rotate_*3.14)/180.
         if FLAG.train_2d == True:
-            for indd, p_tmp in enumerate(p2_v):
-                p2_v[indd] = rotate(midd, tuple(p_tmp), rotate_rad)
+            for indd, p_tmp in enumerate(p2):
+                p2[indd] = rotate(midd, tuple(p_tmp), rotate_rad)
         else:
             print(pose3[ii,:])
             for indd, p_tmp in enumerate(pose3[ii, :]):
                 print (indd, p_tmp)
                 pose3[ii, indd, :2] = rotate(midd, tuple(p_tmp[:2]), rotate_rad)
-                p2_v[indd] = pose3[ii, indd, :2]
-                
+                p2[indd] = pose3[ii, indd, :2]
+
+        p2_v = p2[np.sum(p2, -1) > 0]
         #plt.imshow(im)
         #plt.scatter(p2_v[:,0], p2_v[:,1])
         #plt.show()
@@ -162,7 +163,9 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
         
         images_.append(im_)
         pose2_.append(p2)
-        
+        #plt.imshow(im_)
+        #plt.scatter(p2[:,0], p2[:,1])
+        #plt.show()
         
         if pose3 is not None:
             pose3[ii, :, :2] -= min_
@@ -189,8 +192,7 @@ def data_vis(image, pose2, pose3, Cam_C, ind):
 
 def gaussian(x, mu, sig, max_prob=1):
     const_ = 1. / (sig * 2.50599)
-    return max_prob * const_ \
-           * np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
+    return const_ * np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
 
 
 def plot_3d(image, threshold=0.5):
