@@ -82,9 +82,9 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
         hW = np.max(max_ - min_)
         midP = np.mean(p2_v, axis=0)
         
-        verSkw = np.random.uniform(0.5, 0.5)
-        horizSkw = np.random.uniform(0.5, 0.5)
-        incSiz = np.random.uniform(hW * 0.5, hW * 0.5)
+        verSkw = np.random.uniform(0.2, 0.8)
+        horizSkw = np.random.uniform(0.3, 0.5)
+        incSiz = np.random.uniform(hW * -0.2, hW * 0.7)
         # hW /= 2
         hW += incSiz
         skw = [verSkw, horizSkw]
@@ -115,7 +115,7 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
         
         if pose3 is not None:
             pose3[ii, :, :2] -= min_
-            pose3_.append(pose3[ii, :, :2])
+            pose3_.append(pose3[ii, :, :])
             
     if FLAG.train_2d == True:
         return images_, pose2_, None
@@ -226,8 +226,9 @@ def get_vector_gt(image_b, pose2_b, pose3_b, FLAG):
     for ii in xrange(num_of_data):
         # print (ii, im_resize_factor, np.shape(image_b[ii]))
         im_ = misc.imresize(image_b[ii], (FLAG.image_res, FLAG.image_res))
-        size_scale_ = np.array(np.shape(image_b[ii])[:2], dtype=np.float) / \
-                      np.array(FLAG.volume_res, dtype=np.float)
+        size_scale_ = np.array([np.shape(image_b[ii])[1],np.shape(image_b[ii])[0]], dtype=np.float) / \
+                      np.array([FLAG.volume_res, FLAG.volume_res], dtype=np.float)
+        
         p2_ = pose2_b[ii] / size_scale_
         p3_ = pose3_b[ii]
         p3_[:, 0:2] = p3_[:, 0:2] / size_scale_
@@ -300,8 +301,8 @@ def get_vector_gt_2d(image_b, pose2_b, FLAG):
     for ii in xrange(num_of_data):
         
         im_ = misc.imresize(image_b[ii], (FLAG.image_res, FLAG.image_res))
-        size_scale_ = np.array(np.shape(image_b[ii])[:2], dtype=np.float) / \
-                      np.array(FLAG.volume_res, dtype=np.float)
+        size_scale_ = np.array([np.shape(image_b[ii])[1],np.shape(image_b[ii])[0]], dtype=np.float) / \
+                      np.array([FLAG.volume_res, FLAG.volume_res], dtype=np.float)
         p2_ = pose2_b[ii] / size_scale_
         #plt.imshow(im_)
         #plt.show()

@@ -79,7 +79,7 @@ class DataHolder():
         steps = map(int, self.FLAG.structure_string.split('-'))
         total_dim = np.sum(np.array(steps))
         
-        if pose3 == None:
+        if self.FLAG.train_2d == True:
             
             image_b, pose2_b, _ = utils.data_prep.get_batch(imgFiles,
                                                               pose2)
@@ -97,12 +97,12 @@ class DataHolder():
             image_b, pose2_b, pose3_b = utils.data_prep.get_batch(imgFiles,
                                                                   pose2,
                                                                   pose3)
-
+            
             image_b, pose2_b, pose3_b = utils.data_prep.crop_data_top_down(
                 image_b,
                 pose2_b,
                 pose3_b, self.FLAG)
-
+	
             image, pose2, pose3, vec_64, vec_32, vec_16, vec_8 = \
                 utils.data_prep.get_vector_gt(image_b, pose2_b, pose3_b,
                                               self.FLAG)
