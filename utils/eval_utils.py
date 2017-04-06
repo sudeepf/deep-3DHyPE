@@ -53,13 +53,12 @@ def compute_precision(prediction, gt, steps, mul_factor, num_joints):
 
 def get_coordinate(prediction, steps, num_joints):
     out_shape = np.shape(prediction)
-    total_Z = sum(steps)
+    print(out_shape)
     pred_ = np.reshape(prediction, (out_shape[0], out_shape[1], out_shape[2],
-                                    total_Z, num_joints))
+                                    out_shape[2], num_joints))
     # print(np.shape(pred_))
     # plt.imshow(np.sum(pred_[0, :, :, 0, :], axis=2))
     # plt.show()
-    pred_ = pred_[:, :, :, -1 * steps[-1]:, :]
     # Pred_ size is now Batch - X - Y - Z - Joints
     # we need in Batch - Joint - 3(X,Y,Z)
     pred_ = np.rollaxis(pred_, 4, 1)

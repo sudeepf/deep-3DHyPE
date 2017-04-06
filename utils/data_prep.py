@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from skimage import measure, morphology
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import tensorflow as tf
-
+import math
 
 def get_list_all_training_frames(list_of_mat, FLAG):
     pose3_ = []
@@ -62,9 +62,23 @@ def get_batch(imgFiles, pose2, pose3=None):
     for name in imgFiles:
         ii += 1
         im = misc.imread(name[:])
-        data.append(im)
+        data.append(im.astype(np.float32))
     return data, pose2, pose3
 
+def rotate(origin, point, angle):
+    """
+    Rotate a point counterclockwise by a given angle around a given origin.
+
+    The angle should be given in radians.
+    """
+    ox = origin[0]
+    oy = origin[1]
+    px = point[0]
+    py = point[1]
+
+    qx = ox + math.cos(angle) * (px - ox) - math.sin(angle) * (py - oy)
+    qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
+    return np.array([qx, qy])
 
 def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
     num_data_points = len(images)
@@ -72,11 +86,32 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
     pose2_ = []
     pose3_ = []
     for ii in xrange(num_data_points):
-        im = images[ii]
+        im = images[ii].astype(np.float32)
+        #print(np.max(im))
         imSize = min(np.shape(im)[1], np.shape(im)[0])
         p2 = pose2[ii]  # + Cam_C
         p2_v = p2[np.sum(p2,-1) > 0]
-
+        #plt.imshow(im)
+        #plt.scatter(p2_v[:, 0], p2_v[:, 1])
+        #plt.show()
+        #Rotate Dataset
+        rotate_ = np.random.uniform(-40., 40.)
+        im = misc.imrotate(im, -1*rotate_).astype(np.float32)
+        midd = np.array([np.shape(im)[1], np.shape(im)[0]]) / 2
+        rotate_rad = (rotate_*3.14)/180.
+        if FLAG.train_2d == True:
+            for indd, p_tmp in enumerate(p2_v):
+                p2_v[indd] = rotate(midd, tuple(p_tmp), rotate_rad)
+        else:
+            print(pose3[ii,:])
+            for indd, p_tmp in enumerate(pose3[ii, :]):
+                print (indd, p_tmp)
+                pose3[ii, indd, :2] = rotate(midd, tuple(p_tmp[:2]), rotate_rad)
+                p2_v[indd] = pose3[ii, indd, :2]
+                
+        #plt.imshow(im)
+        #plt.scatter(p2_v[:,0], p2_v[:,1])
+        #plt.show()
         min_ = np.min(p2_v, axis=0)
         max_ = np.max(p2_v, axis=0)
         hW = np.max(max_ - min_)
@@ -84,7 +119,13 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
         
         verSkw = np.random.uniform(0.2, 0.8)
         horizSkw = np.random.uniform(0.3, 0.5)
-        incSiz = np.random.uniform(hW * -0.2, hW * 0.7)
+        incSiz = np.random.uniform(hW * -0.2, hW * 0.8)
+
+        if FLAG.train_2d == True:
+            verSkw = np.random.uniform(0.5, 0.5)
+            horizSkw = np.random.uniform(0.5, 0.5)
+            incSiz = np.random.uniform(hW * 0.5, hW * 0.5)
+
         # hW /= 2
         hW += incSiz
         skw = [verSkw, horizSkw]
@@ -108,6 +149,16 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
         max_ = max_.astype(np.int)
         im_ = im[min_[1]:max_[1], min_[0]:max_[0]]
         p2 -= min_
+        
+        # Change color channel contrast randomly for 3D humanpose dataset
+        if FLAG.train_2d == False:
+            rand_r = np.random.uniform(0.5, 1)
+            rand_g = np.random.uniform(0.5, 1)
+            rand_b = np.random.uniform(0.5, 1)
+            #print(np.max(im_[:, :, 0]))
+            im_[:, :, 0] = im_[:, :, 0]* rand_r
+            im_[:, :, 0] = im_[:, :, 0]* rand_g
+            im_[:, :, 0] = im_[:, :, 0]* rand_b
         
         images_.append(im_)
         pose2_.append(p2)
@@ -137,7 +188,7 @@ def data_vis(image, pose2, pose3, Cam_C, ind):
 
 
 def gaussian(x, mu, sig, max_prob=1):
-    const_ = 1. #/ (sig * 2.50599)
+    const_ = 1. / (sig * 2.50599)
     return max_prob * const_ \
            * np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
 
