@@ -95,11 +95,13 @@ def get_coordinate_tensor(vol, steps, batch_size, vol_res, joints):
     
     cords = []
     total_dim = np.sum(np.array(steps))
-    vol = tf.reshape(vol, [batch_size, vol_res, vol_res, total_dim, joints])
-    
+    shape_ = vol.get_shape().as_list()
+    vol = tf.reshape(vol, [batch_size] + shape_[:-1], shape_[-1]/joints, joints)
+
+
     for bi in xrange(batch_size):
         v = tf.slice(vol, [bi, 0, 0, 0, 0],
-                     [1, vol_res, vol_res, total_dim, joints])
+                     [1, shape_[-2], shape_[-2], total_dim, joints])
         v = tf.squeeze(v)
         step_c = 0
         for si in xrange(len(steps)):
@@ -124,7 +126,8 @@ def get_precision_MultiGPU(output, y, scale, FLAG):
     vol_res = FLAG.volume_res
     output_cords = []
     y_cords = []
-    for out_, y_ in zip(output, y):
+    print(len(output))
+    for out_, y_ in zip(output[-2], y):
         output_cords.append(
             get_coordinate_tensor(out_, steps, batch_size, vol_res,
                                   joints))

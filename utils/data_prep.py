@@ -9,7 +9,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import tensorflow as tf
 
 
-def get_list_all_training_frames(list_of_mat):
+def get_list_all_training_frames(list_of_mat, FLAG):
     pose3_ = []
     pose2_ = []
     files_ = []
@@ -17,13 +17,17 @@ def get_list_all_training_frames(list_of_mat):
     for ind, mFile in enumerate(list_of_mat):
         mat = scipy.io.loadmat(mFile)
         pose2_.append(mat['poses2'])
-        pose3_.append(mat['poses3'])
+        if FLAG.train_2d==False:
+            pose3_.append(mat['poses3'])
         files_.append(mat['imgs'])
         ratio = 100 * (float(ind) / float(len(list_of_mat)))
         if ratio % 10 == 0:
             print('Successfully loaded -> ', ratio, '%')
     
-    pose3 = np.concatenate(pose3_, axis=0)
+    pose3 = None
+    if FLAG.train_2d==False:
+        pose3 = np.concatenate(pose3_, axis=0)
+    
     pose2 = np.concatenate(pose2_, axis=0)
     files = np.concatenate(files_, axis=0)
     
@@ -52,16 +56,18 @@ def get_list_all_testing_frames(list_of_mat):
     return files, pose2, pose3, gt
 
 
-def get_batch(imgFiles, pose2, pose3, FLAG):
+def get_batch(imgFiles, pose2, pose3=None):
     data = []
+    ii = 0
     for name in imgFiles:
+        ii += 1
         im = misc.imread(name[:])
-        data.append(im/np.max(np.max(np.max(np.float32(im)))))
+        data.append(im)
     return data, pose2, pose3
 
 
-def crop_data_top_down(images, pose2, pose3):
-    num_data_points = np.shape(images)[0]
+def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
+    num_data_points = len(images)
     images_ = []
     pose2_ = []
     pose3_ = []
@@ -69,17 +75,16 @@ def crop_data_top_down(images, pose2, pose3):
         im = images[ii]
         imSize = min(np.shape(im)[1], np.shape(im)[0])
         p2 = pose2[ii]  # + Cam_C
-        p3 = pose3[ii]
-        # p3[:,0:2] = p3[:,0:2] + Cam_C
-        p3[:, 2] = p3[:, 2]  # Means Res = 2cm per index for 64
-        min_ = np.min(p2, axis=0)
-        max_ = np.max(p2, axis=0)
+        p2_v = p2[np.sum(p2,-1) > 0]
+
+        min_ = np.min(p2_v, axis=0)
+        max_ = np.max(p2_v, axis=0)
         hW = np.max(max_ - min_)
-        midP = np.mean(p2, axis=0)
+        midP = np.mean(p2_v, axis=0)
         
-        verSkw = np.random.uniform(0.3, 0.7)
-        horizSkw = np.random.uniform(0.35, 0.5)
-        incSiz = np.random.uniform(60, 80)
+        verSkw = np.random.uniform(0.2, 0.8)
+        horizSkw = np.random.uniform(0.3, 0.5)
+        incSiz = np.random.uniform(hW * -0.2, hW * 0.7)
         # hW /= 2
         hW += incSiz
         skw = [verSkw, horizSkw]
@@ -88,8 +93,8 @@ def crop_data_top_down(images, pose2, pose3):
         hW = hW.astype(np.int)
         min_[1] = max(min_[1], 0)
         min_[0] = max(min_[0], 0)
-        max_[1] = min((min_[1] + hW), imSize)
-        max_[0] = min((min_[0] + hW), imSize)
+        max_[1] = min((midP[1] + hW*0.5), np.shape(im)[0])
+        max_[0] = min((midP[0] + hW*0.5), np.shape(im)[1])
         
         # Debugging Stuff
         # implot = plt.imshow(im)
@@ -103,11 +108,20 @@ def crop_data_top_down(images, pose2, pose3):
         max_ = max_.astype(np.int)
         im_ = im[min_[1]:max_[1], min_[0]:max_[0]]
         p2 -= min_
-        p3[:, :2] -= min_
         
         images_.append(im_)
         pose2_.append(p2)
-        pose3_.append(p3)
+        
+        
+        if pose3 is not None:
+            pose3[ii, :, :2] -= min_
+            pose3_.append(pose3[ii, :, :])
+            
+    if FLAG.train_2d == True:
+        return images_, pose2_, None
+        
+    if FLAG.train_2d==True:
+        return images_, pose2_, None
     
     return images_, pose2_, pose3_
 
@@ -122,8 +136,10 @@ def data_vis(image, pose2, pose3, Cam_C, ind):
     plt.show()
 
 
-def gaussian(x, mu, sig, max_prob):
-    return max_prob * np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
+def gaussian(x, mu, sig, max_prob=1):
+    const_ = 1. #/ (sig * 2.50599)
+    return max_prob * const_ \
+           * np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
 
 
 def plot_3d(image, threshold=0.5):
@@ -150,7 +166,7 @@ def plot_3d(image, threshold=0.5):
     plt.show()
 
 
-def volumize_gt(image_b, pose2_b, pose3_b, resize_factor, im_resize_factor, \
+def volumize_gt(image_b, pose2_b, pose3_b, resize_factor, im_resize_factor,
                 sigma, mul_factor, max_prob, FLAG):
     num_of_data = FLAG.batch_size
     batch_data = np.empty((0, 14, resize_factor, resize_factor, resize_factor))
@@ -197,9 +213,12 @@ def volumize_gt(image_b, pose2_b, pose3_b, resize_factor, im_resize_factor, \
 def get_vector_gt(image_b, pose2_b, pose3_b, FLAG):
     num_of_data = FLAG.batch_size
     vec_64 = np.empty((FLAG.batch_size, 3, FLAG.num_joints, FLAG.volume_res))
-    vec_32 = np.empty((FLAG.batch_size, 3, FLAG.num_joints, FLAG.volume_res//2))
-    vec_16 = np.empty((FLAG.batch_size, 3, FLAG.num_joints, FLAG.volume_res//4))
-    vec_8 = np.empty((FLAG.batch_size, 3, FLAG.num_joints, FLAG.volume_res//8))
+    vec_32 = np.empty(
+        (FLAG.batch_size, 3, FLAG.num_joints, FLAG.volume_res // 2))
+    vec_16 = np.empty(
+        (FLAG.batch_size, 3, FLAG.num_joints, FLAG.volume_res // 4))
+    vec_8 = np.empty(
+        (FLAG.batch_size, 3, FLAG.num_joints, FLAG.volume_res // 8))
     pose2 = []
     pose3 = []
     image = np.empty((FLAG.batch_size, FLAG.image_res, FLAG.image_res, 3))
@@ -207,8 +226,9 @@ def get_vector_gt(image_b, pose2_b, pose3_b, FLAG):
     for ii in xrange(num_of_data):
         # print (ii, im_resize_factor, np.shape(image_b[ii]))
         im_ = misc.imresize(image_b[ii], (FLAG.image_res, FLAG.image_res))
-        size_scale_ = np.array(np.shape(image_b[ii])[:2], dtype=np.float) / \
-                      np.array(FLAG.volume_res, dtype=np.float)
+        size_scale_ = np.array([np.shape(image_b[ii])[1],np.shape(image_b[ii])[0]], dtype=np.float) / \
+                      np.array([FLAG.volume_res, FLAG.volume_res], dtype=np.float)
+        
         p2_ = pose2_b[ii] / size_scale_
         p3_ = pose3_b[ii]
         p3_[:, 0:2] = p3_[:, 0:2] / size_scale_
@@ -224,39 +244,104 @@ def get_vector_gt(image_b, pose2_b, pose3_b, FLAG):
                                                  FLAG.joint_prob_max)
                 vec_64[ii, 2, jj, kk] = gaussian(kk, p3_[jj, 2], FLAG.sigma,
                                                  FLAG.joint_prob_max)
-            
-        for jj in xrange(14):
-            for kk in xrange(FLAG.volume_res/2):
-                vec_32[ii, 0, jj, kk] = gaussian(kk, p3_[jj, 0]//2, FLAG.sigma,
-                                                 FLAG.joint_prob_max)
-                vec_32[ii, 1, jj, kk] = gaussian(kk, p3_[jj, 1]//2, FLAG.sigma,
-                                                 FLAG.joint_prob_max)
-                vec_32[ii, 2, jj, kk] = gaussian(kk, p3_[jj, 2]//2, FLAG.sigma,
-                                                     FLAG.joint_prob_max)
         
         for jj in xrange(14):
-            for kk in xrange(FLAG.volume_res/4):
-                vec_16[ii, 0, jj, kk] = gaussian(kk, p3_[jj, 0]//4, FLAG.sigma,
+            for kk in xrange(FLAG.volume_res / 2):
+                vec_32[ii, 0, jj, kk] = gaussian(kk, p3_[jj, 0] // 2,
+                                                 FLAG.sigma,
                                                  FLAG.joint_prob_max)
-                vec_16[ii, 1, jj, kk] = gaussian(kk, p3_[jj, 1]//4, FLAG.sigma,
+                vec_32[ii, 1, jj, kk] = gaussian(kk, p3_[jj, 1] // 2,
+                                                 FLAG.sigma,
                                                  FLAG.joint_prob_max)
-                vec_16[ii, 2, jj, kk] = gaussian(kk, p3_[jj, 2]//4, FLAG.sigma,
+                vec_32[ii, 2, jj, kk] = gaussian(kk, p3_[jj, 2] // 2,
+                                                 FLAG.sigma,
                                                  FLAG.joint_prob_max)
         
         for jj in xrange(14):
-            for kk in xrange(FLAG.volume_res/8):
-                vec_8[ii, 0, jj, kk] = gaussian(kk, p3_[jj, 0]//8, FLAG.sigma,
+            for kk in xrange(FLAG.volume_res / 4):
+                vec_16[ii, 0, jj, kk] = gaussian(kk, p3_[jj, 0] // 4,
+                                                 FLAG.sigma,
                                                  FLAG.joint_prob_max)
-                vec_8[ii, 1, jj, kk] = gaussian(kk, p3_[jj, 1]//8, FLAG.sigma,
+                vec_16[ii, 1, jj, kk] = gaussian(kk, p3_[jj, 1] // 4,
+                                                 FLAG.sigma,
                                                  FLAG.joint_prob_max)
-                vec_8[ii, 2, jj, kk] = gaussian(kk, p3_[jj, 2]//8, FLAG.sigma,
+                vec_16[ii, 2, jj, kk] = gaussian(kk, p3_[jj, 2] // 4,
+                                                 FLAG.sigma,
                                                  FLAG.joint_prob_max)
+        
+        for jj in xrange(14):
+            for kk in xrange(FLAG.volume_res / 8):
+                vec_8[ii, 0, jj, kk] = gaussian(kk, p3_[jj, 0] // 8, FLAG.sigma,
+                                                FLAG.joint_prob_max)
+                vec_8[ii, 1, jj, kk] = gaussian(kk, p3_[jj, 1] // 8, FLAG.sigma,
+                                                FLAG.joint_prob_max)
+                vec_8[ii, 2, jj, kk] = gaussian(kk, p3_[jj, 2] // 8, FLAG.sigma,
+                                                FLAG.joint_prob_max)
         
         pose2.append(p2_)
         pose3.append(p3_)
         image[ii, :, :, :] = im_
     
     return image, pose2, pose3, vec_64, vec_32, vec_16, vec_8
+
+
+def get_vector_gt_2d(image_b, pose2_b, FLAG):
+    num_of_data = FLAG.batch_size
+    vec_64 = np.empty((FLAG.batch_size, 2, FLAG.num_joints, FLAG.volume_res))
+    vec_32 = np.empty(
+        (FLAG.batch_size, 2, FLAG.num_joints, FLAG.volume_res // 2))
+    vec_16 = np.empty(
+        (FLAG.batch_size, 2, FLAG.num_joints, FLAG.volume_res // 4))
+    vec_8 = np.empty(
+        (FLAG.batch_size, 2, FLAG.num_joints, FLAG.volume_res // 8))
+    pose2 = []
+    
+    image = np.empty((FLAG.batch_size, FLAG.image_res, FLAG.image_res, 3))
+    
+    for ii in xrange(num_of_data):
+        
+        im_ = misc.imresize(image_b[ii], (FLAG.image_res, FLAG.image_res))
+        size_scale_ = np.array([np.shape(image_b[ii])[1],np.shape(image_b[ii])[0]], dtype=np.float) / \
+                      np.array([FLAG.volume_res, FLAG.volume_res], dtype=np.float)
+        p2_ = pose2_b[ii] / size_scale_
+        #plt.imshow(im_)
+        #plt.show()
+        for jj in xrange(14):
+            for kk in xrange(FLAG.volume_res):
+                vec_64[ii, 0, jj, kk] = gaussian(kk, p2_[jj, 0], FLAG.sigma,
+                                                 FLAG.joint_prob_max)
+                vec_64[ii, 1, jj, kk] = gaussian(kk, p2_[jj, 1], FLAG.sigma,
+                                                 FLAG.joint_prob_max)
+        
+        for jj in xrange(14):
+            for kk in xrange(FLAG.volume_res / 2):
+                vec_32[ii, 0, jj, kk] = gaussian(kk, p2_[jj, 0] // 2,
+                                                 FLAG.sigma,
+                                                 FLAG.joint_prob_max)
+                vec_32[ii, 1, jj, kk] = gaussian(kk, p2_[jj, 1] // 2,
+                                                 FLAG.sigma,
+                                                 FLAG.joint_prob_max)
+        
+        for jj in xrange(14):
+            for kk in xrange(FLAG.volume_res / 4):
+                vec_16[ii, 0, jj, kk] = gaussian(kk, p2_[jj, 0] // 4,
+                                                 FLAG.sigma,
+                                                 FLAG.joint_prob_max)
+                vec_16[ii, 1, jj, kk] = gaussian(kk, p2_[jj, 1] // 4,
+                                                 FLAG.sigma,
+                                                 FLAG.joint_prob_max)
+        
+        for jj in xrange(14):
+            for kk in xrange(FLAG.volume_res / 8):
+                vec_8[ii, 0, jj, kk] = gaussian(kk, p2_[jj, 0] // 8, FLAG.sigma,
+                                                FLAG.joint_prob_max)
+                vec_8[ii, 1, jj, kk] = gaussian(kk, p2_[jj, 1] // 8, FLAG.sigma,
+                                                FLAG.joint_prob_max)
+        
+        pose2.append(p2_)
+        image[ii] = im_
+
+    return image, pose2, vec_64, vec_32, vec_16, vec_8
 
 
 def volumize_vec_gpu(tensor_x, tensor_y, tensor_z, scale, FLAG):
@@ -284,7 +369,32 @@ def volumize_vec_gpu(tensor_x, tensor_y, tensor_z, scale, FLAG):
             vol = tf.expand_dims(vol, 3)
             list_j.append(vol)
         list_b.append(tf.concat(list_j, 3))
-	    
+    
+    return tf.stack(list_b, 0)
+
+
+def heatmap_vec_gpu(tensor_x, tensor_y, scale, FLAG):
+    """
+
+	:param tensor_x: Probability distribution of GroundTruth along x axis
+	:param tensor_y: Probability distribution of GroundTruth along y axis
+	:param tensor_z: Probability distribution of GroundTruth along z axis
+	:param FLAG: Parameters
+	:return: Volumized representation for all joints in form of
+	Batch - X - Y - Z - Joints
+
+	"""
+    list_b = []
+    for ii in xrange(FLAG.batch_size):
+        list_j = []
+        for jj in xrange(FLAG.num_joints):
+            vol = tf.matmul(tf.transpose(tensor_y[ii, jj:jj + 1]),
+                            tensor_x[ii, jj:jj + 1])
+            vol = tf.reshape(vol, [FLAG.volume_res // scale,
+                                   FLAG.volume_res // scale, 1])
+            list_j.append(vol)
+        list_b.append(tf.concat(list_j, 2))
+    
     return tf.stack(list_b, 0)
 
 
@@ -315,6 +425,7 @@ def prepare_output(batch_data, steps=[1, 2, 4, 64]):
             slice_start = slice_end + 1
     
     return np.array(output)
+
 
 
 def prepare_output_gpu(batch_data, steps, FLAG):
