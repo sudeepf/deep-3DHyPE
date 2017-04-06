@@ -70,7 +70,7 @@ def add_all(x, input, output, loss):
     variable_summaries(output, 'output')
     variable_summaries(input, 'input')
     # img = tf.image.convert_image_dtype(img, dtype=tf.uint8)
-    img = tf.image.resize_images(x[0:1], [32, 32])
+    img = tf.image.resize_images(x[0:1], [64, 64])
     image_summaries(img, 'input_')
     
     # get heatmap on output

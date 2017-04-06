@@ -86,7 +86,7 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
     pose2_ = []
     pose3_ = []
     for ii in xrange(num_data_points):
-        im = images[ii].astype(np.float32)
+        im = images[ii]
         #print(np.max(im))
         imSize = min(np.shape(im)[1], np.shape(im)[0])
         p2 = pose2[ii]  # + Cam_C
@@ -95,7 +95,7 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
         #plt.scatter(p2_v[:, 0], p2_v[:, 1])
         #plt.show()
         #Rotate Dataset
-        rotate_ = np.random.uniform(-40., 40.)
+        rotate_ = np.random.uniform(-20., 20.)
         im = misc.imrotate(im, -1*rotate_).astype(np.float32)
         midd = np.array([np.shape(im)[1], np.shape(im)[0]]) / 2
         rotate_rad = (rotate_*3.14)/180.
@@ -109,7 +109,7 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
                 pose3[ii, indd, :2] = rotate(midd, tuple(p_tmp[:2]), rotate_rad)
                 p2[indd] = pose3[ii, indd, :2]
 
-        p2_v = p2[np.sum(p2, -1) > 0]
+        p2_v = p2[np.min(p2, -1) > 0]
         #plt.imshow(im)
         #plt.scatter(p2_v[:,0], p2_v[:,1])
         #plt.show()
@@ -153,6 +153,7 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
         
         # Change color channel contrast randomly for 3D humanpose dataset
         if FLAG.train_2d == False:
+            im_ = im_.astype(np.float32)
             rand_r = np.random.uniform(0.5, 1)
             rand_g = np.random.uniform(0.5, 1)
             rand_b = np.random.uniform(0.5, 1)
