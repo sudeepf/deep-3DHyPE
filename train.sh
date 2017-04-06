@@ -6,7 +6,7 @@ nice -n 10 python train_2d.py \
 --joint_prob_max=1 \
 --sigma=2. \
 --gpu_string=0-1 \
---learning_rate=8e-4 \
+--learning_rate=2e-4 \
 --train_2d=true \
 --dataset_dir=./Dataset_2d/ \
 --load_ckpt_path=./tensor_record//tmp/model64-64.ckpt
