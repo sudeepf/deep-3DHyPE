@@ -3,8 +3,8 @@ nice -n 10 python train_2d.py \
 --data_split_string_train=S1 \
 --data_split_string_test=S1 \
 --batch_size=8 \
---joint_prob_max=1 \
---sigma=2. \
+--joint_prob_max=100 \
+--sigma=1.5 \
 --gpu_string=0-1 \
 --learning_rate=2e-4 \
 --train_2d=true \

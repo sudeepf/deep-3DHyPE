@@ -62,7 +62,7 @@ def get_batch(imgFiles, pose2, pose3=None):
     for name in imgFiles:
         ii += 1
         im = misc.imread(name[:])
-        data.append(im.astype(np.float32))
+        data.append(im)
     return data, pose2, pose3
 
 def rotate(origin, point, angle):
@@ -95,19 +95,7 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
         #plt.scatter(p2_v[:, 0], p2_v[:, 1])
         #plt.show()
         #Rotate Dataset
-        rotate_ = np.random.uniform(-20., 20.)
-        im = misc.imrotate(im, -1*rotate_).astype(np.float32)
-        midd = np.array([np.shape(im)[1], np.shape(im)[0]]) / 2
-        rotate_rad = (rotate_*3.14)/180.
-        if FLAG.train_2d == True:
-            for indd, p_tmp in enumerate(p2):
-                p2[indd] = rotate(midd, tuple(p_tmp), rotate_rad)
-        else:
-            print(pose3[ii,:])
-            for indd, p_tmp in enumerate(pose3[ii, :]):
-                print (indd, p_tmp)
-                pose3[ii, indd, :2] = rotate(midd, tuple(p_tmp[:2]), rotate_rad)
-                p2[indd] = pose3[ii, indd, :2]
+        
 
         p2_v = p2[np.min(p2, -1) > 0]
         #plt.imshow(im)
@@ -150,7 +138,22 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
         max_ = max_.astype(np.int)
         im_ = im[min_[1]:max_[1], min_[0]:max_[0]]
         p2 -= min_
-        
+        if pose3 is not None:
+            pose3[ii, :, :2] -= min_
+
+        rotate_ = np.random.uniform(-40., 40.)
+        im_ = misc.imrotate(im_, -1 * rotate_).astype(np.float32)
+        midd = np.array([np.shape(im_)[1], np.shape(im_)[0]]) / 2
+        rotate_rad = (rotate_ * 3.14) / 180.
+        if FLAG.train_2d == True:
+            for indd, p_tmp in enumerate(p2):
+                p2[indd] = rotate(midd, tuple(p_tmp), rotate_rad)
+        else:
+            for indd, p_tmp in enumerate(pose3[ii, :]):
+                print (indd, p_tmp)
+                pose3[ii, indd, :2] = rotate(midd, tuple(p_tmp[:2]), rotate_rad)
+                p2[indd] = pose3[ii, indd, :2]
+                
         # Change color channel contrast randomly for 3D humanpose dataset
         if FLAG.train_2d == False:
             im_ = im_.astype(np.float32)
@@ -169,14 +172,11 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
         #plt.show()
         
         if pose3 is not None:
-            pose3[ii, :, :2] -= min_
             pose3_.append(pose3[ii, :, :])
             
     if FLAG.train_2d == True:
         return images_, pose2_, None
         
-    if FLAG.train_2d==True:
-        return images_, pose2_, None
     
     return images_, pose2_, pose3_
 
