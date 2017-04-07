@@ -57,11 +57,11 @@ class stacked_hourglass():
                 ll[self.nb_stack - 1] = self._conv_bn_relu(
                     hg[self.nb_stack - 1], 256,
                     name='conv_1')
-                self.module_supervisions[-1].append(tf.nn.sigmoid(
+                self.module_supervisions[-1].append(
                     self._conv(ll[self.nb_stack - 1],
                                14 * self.steps[self.nb_stack - 1],
                                1, 1,
-                               'VALID', 'out'),name='sigmoid'))
+                               'VALID', 'out'))
             
             # return tf.concat(out, axis=3)
             # return self.module_supervisions
@@ -154,7 +154,7 @@ class stacked_hourglass():
                 
                 low2 = self._hourglass(low1, n - 1, nb_filter_res / 2, 'low2',
                                        rank_)
-                low2 = tf.add(low2, up1, name = 'merged1')
+                low2 = tf.concat([low2, up1], axis=-1, name = 'merged1')
             else:
                 low1 = self._residual_block(inputs, (128*64*14) / nb_filter_res, 'low1_1')
                 low2 = self._residual_block(low1, (128*64*14) / nb_filter_res, 'low2_1')
@@ -165,8 +165,7 @@ class stacked_hourglass():
             
             lower1 = self._conv(low3, nb_filter_res, 1, 1, 'VALID', 'lower1')
             
-            self.module_supervisions[n - 1].append(tf.nn.sigmoid(lower1,
-                                                                 name='sigmoid'))
+            self.module_supervisions[n - 1].append(lower1)
             
             if n < 4:
                 lower2 = tf.image.resize_nearest_neighbor(lower1,
