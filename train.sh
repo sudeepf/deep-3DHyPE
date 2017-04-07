@@ -2,7 +2,7 @@ nice -n 10 python train_2d.py \
 --structure_string=64-64 \
 --data_split_string_train=S1 \
 --data_split_string_test=S1 \
---batch_size=16 \
+--batch_size=8 \
 --joint_prob_max=1 \
 --sigma=2. \
 --gpu_string=0-1 \
