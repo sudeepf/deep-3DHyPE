@@ -2,10 +2,10 @@ nice -n 10 python train_2d.py \
 --structure_string=64-64 \
 --data_split_string_train=S1 \
 --data_split_string_test=S1 \
---batch_size=16 \
---joint_prob_max=1 \
---sigma=2. \
---gpu_string=0-1 \
+--batch_size=1 \
+--joint_prob_max=100 \
+--sigma=1.5 \
+--gpu_string=0 \
 --learning_rate=2e-4 \
 --train_2d=true \
 --dataset_dir=./Dataset_2d/ \

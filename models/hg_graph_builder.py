@@ -87,7 +87,7 @@ class HGgraphBuilder_MultiGPU():
                             # constructs the entire CIFAR model but shares the variables across
                             # all towers.
                             
-                            
+                            mult_fac = tf.constant(FLAG.joint_prob_max)
                             
                             _x = tf.placeholder(tf.float32,
                                                 [None, FLAG.image_res,
@@ -115,25 +115,25 @@ class HGgraphBuilder_MultiGPU():
                                                             2, FLAG.num_joints,
                                                             64])
 
-                                label.append(
+                                label.append(tf.scalar_mul(mult_fac,
                                     utils.data_prep.heatmap_vec_gpu(
                                         tensor_64[:, 0],
-                                        tensor_64[:, 1], 1, FLAG))
+                                        tensor_64[:, 1], 1, FLAG)))
 
-                                label.append(
+                                label.append(tf.scalar_mul(mult_fac,
                                     utils.data_prep.heatmap_vec_gpu(
                                         tensor_32[:, 0],
-                                        tensor_32[:, 1], 2, FLAG))
+                                        tensor_32[:, 1], 2, FLAG)))
 
-                                label.append(
+                                label.append(tf.scalar_mul(mult_fac,
                                     utils.data_prep.heatmap_vec_gpu(
                                         tensor_16[:, 0],
-                                        tensor_16[:, 1], 4, FLAG))
+                                        tensor_16[:, 1], 4, FLAG)))
 
-                                label.append(
+                                label.append(tf.scalar_mul(mult_fac,
                                     utils.data_prep.heatmap_vec_gpu(
                                         tensor_8[:, 0],
-                                        tensor_8[:, 1], 8, FLAG))
+                                        tensor_8[:, 1], 8, FLAG)))
                             
                             else:
                                 
@@ -154,32 +154,32 @@ class HGgraphBuilder_MultiGPU():
                                                             3, FLAG.num_joints,
                                                             64])
                             
-                                label.append(
+                                label.append(tf.scalar_mul(mult_fac,
                                     utils.data_prep.volumize_vec_gpu(
                                          tensor_64[:,0],
                                          tensor_64[:,1],
                                          tensor_64[:,
-                                         2], 1, FLAG))
+                                         2], 1, FLAG)))
                             
-                                label.append(
+                                label.append(tf.scalar_mul(mult_fac,
                                     utils.data_prep.volumize_vec_gpu(
                                         tensor_32[:, 0],
                                         tensor_32[:, 1],
-                                        tensor_32[:, 2], 2, FLAG))
+                                        tensor_32[:, 2], 2, FLAG)))
     
-                                label.append(
+                                label.append(tf.scalar_mul(mult_fac,
                                     utils.data_prep.volumize_vec_gpu(
                                         tensor_16[:, 0],
                                         tensor_16[:, 1],
                                         tensor_16[:,
-                                        2], 4, FLAG))
+                                        2], 4, FLAG)))
     
-                                label.append(
+                                label.append(tf.scalar_mul(mult_fac,
                                     utils.data_prep.volumize_vec_gpu(
                                         tensor_8[:, 0],
                                         tensor_8[:, 1],
                                         tensor_8[:,
-                                        2], 8, FLAG))
+                                        2], 8, FLAG)))
                             
                             # label = utils.data_prep.prepare_output_gpu(y, steps, FLAG)
                             self.label.append(label)
