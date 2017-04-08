@@ -49,6 +49,9 @@ def get_flags(config_file=None):
     # Flags governing the train and test dataset partition
     tf.app.flags.DEFINE_string('data_split_string_train', 'S1-S5-S0-S6-S7-S8',
                                """ Train Data Subjects """)
+    tf.app.flags.DEFINE_string('data_split_string_train_2d',
+                               '2D',
+                               """ Train Data 2D Subjects """)
     tf.app.flags.DEFINE_string('data_split_string_test', 'S9',
                                """ Test Data Subjects """)
     

@@ -9,7 +9,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import tensorflow as tf
 import math
 
-def get_list_all_training_frames(list_of_mat, FLAG):
+def get_list_all_training_frames(list_of_mat, flag2d):
     pose3_ = []
     pose2_ = []
     files_ = []
@@ -17,7 +17,7 @@ def get_list_all_training_frames(list_of_mat, FLAG):
     for ind, mFile in enumerate(list_of_mat):
         mat = scipy.io.loadmat(mFile)
         pose2_.append(mat['poses2'])
-        if FLAG.train_2d==False:
+        if flag2d == False:
             pose3_.append(mat['poses3'])
         files_.append(mat['imgs'])
         ratio = 100 * (float(ind) / float(len(list_of_mat)))
@@ -25,7 +25,7 @@ def get_list_all_training_frames(list_of_mat, FLAG):
             print('Successfully loaded -> ', ratio, '%')
     
     pose3 = None
-    if FLAG.train_2d==False:
+    if flag2d==False:
         pose3 = np.concatenate(pose3_, axis=0)
     
     pose2 = np.concatenate(pose2_, axis=0)
@@ -150,20 +150,19 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
                 p2[indd] = rotate(midd, tuple(p_tmp), rotate_rad)
         else:
             for indd, p_tmp in enumerate(pose3[ii, :]):
-                print (indd, p_tmp)
                 pose3[ii, indd, :2] = rotate(midd, tuple(p_tmp[:2]), rotate_rad)
                 p2[indd] = pose3[ii, indd, :2]
                 
         # Change color channel contrast randomly for 3D humanpose dataset
-        if FLAG.train_2d == False:
-            im_ = im_.astype(np.float32)
-            rand_r = np.random.uniform(0.5, 1)
-            rand_g = np.random.uniform(0.5, 1)
-            rand_b = np.random.uniform(0.5, 1)
+        #if FLAG.train_2d == False:
+            #im_ = im_.astype(np.float32)
+            #rand_r = np.random.uniform(0.5, 1)
+            #rand_g = np.random.uniform(0.5, 1)
+            #rand_b = np.random.uniform(0.5, 1)
             #print(np.max(im_[:, :, 0]))
-            im_[:, :, 0] = im_[:, :, 0]* rand_r
-            im_[:, :, 0] = im_[:, :, 0]* rand_g
-            im_[:, :, 0] = im_[:, :, 0]* rand_b
+            #im_[:, :, 0] = im_[:, :, 0]* rand_r
+            #im_[:, :, 0] = im_[:, :, 0]* rand_g
+            #im_[:, :, 0] = im_[:, :, 0]* rand_b
         
         images_.append(im_)
         pose2_.append(p2)

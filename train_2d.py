@@ -30,7 +30,10 @@ def main(_):
         raise ValueError(
             'You must supply the dataset directory with --dataset_dir')
     
-    DataHolder = utils.train_utils.DataHolder(FLAG)
+    FLAG.train_2d = False
+    DataHolder_3D = utils.train_utils.DataHolder(FLAG)
+    FLAG.train_2d = True
+    DataHolder_2D = utils.train_utils.DataHolder(FLAG)
     
     print('data loaded... phhhh')
     
@@ -82,8 +85,8 @@ def main(_):
                       (ckpt.model_checkpoint_path, global_step))
             else:
                 print('No checkpoint file found')
-                #tf.global_variables_initializer().run()
-                saver.restore(sess, "./tensor_record//tmp/model64-64-64.ckpt")
+                tf.global_variables_initializer().run()
+                #saver.restore(sess, "./tensor_record//tmp/model64-64-64.ckpt")
                 print('model Initialized...')
             
             print("Let the Training Begin...")
@@ -93,7 +96,7 @@ def main(_):
             # All other steps, run train_step on training data, & add training summaries
             structure = map(int, FLAG.structure_string.split('-'))
             
-            for step in range(DataHolder.train_data_size):
+            for step in range(DataHolder_3D.train_data_size):
                 
                 if step % 1000 == 99:  # Record execution stats
                     save_path = saver.save(sess,
@@ -114,13 +117,26 @@ def main(_):
                 vec_8 = []
                 gt = []
                 time_ = time.clock()
-                for i in map(int, FLAG.gpu_string.split('-')):
-                    fd = DataHolder.get_next_train_batch()
-                    _x.append(fd[0])
-                    vec_64.append(fd[1])
-                    vec_32.append(fd[2])
-                    vec_16.append(fd[3])
-                    vec_8.append(fd[4])
+                for ii, igpu in enumerate(map(int, FLAG.gpu_string.split('-'))):
+                    
+                    FLAG.train_2d = False
+                    if ii % 2 == 0:
+                        FLAG.train_2d = True
+    
+                    if FLAG.train_2d == True:
+                        fd = DataHolder_2D.get_next_train_batch()
+                        _x.append(fd[0])
+                        vec_64.append(fd[1])
+                        vec_32.append(fd[2])
+                        vec_16.append(fd[3])
+                        vec_8.append(fd[4])
+                    else:
+                        fd = DataHolder_3D.get_next_train_batch()
+                        _x.append(fd[0])
+                        vec_64.append(fd[1])
+                        vec_32.append(fd[2])
+                        vec_16.append(fd[3])
+                        vec_8.append(fd[4])
                     # gt.append(fd[5])
                 
                 feed_dict_x = {i: d for i, d in zip(builder._x, _x)}

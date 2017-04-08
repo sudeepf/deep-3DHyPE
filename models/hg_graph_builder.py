@@ -79,8 +79,8 @@ class HGgraphBuilder_MultiGPU():
             total_dim = np.sum(np.array(steps))
             
             with tf.variable_scope('model_graph'):
-                for i in map(int, FLAG.gpu_string.split('-')):
-                    with tf.device('/gpu:%d' % i):
+                for i, ii in enumerate(map(int, FLAG.gpu_string.split('-'))):
+                    with tf.device('/gpu:%d' % ii):
                         label = []
                         with tf.name_scope('GPU_%d' % (i)) as scope:
                             # Calculate the loss for one tower of the CIFAR model. This function
@@ -94,7 +94,10 @@ class HGgraphBuilder_MultiGPU():
                                                  FLAG.image_res,
                                                  FLAG.image_c])
                             
-                            print (FLAG.train_2d)
+                            FLAG.train_2d = False
+                            if i % 2 == 0:
+                                FLAG.train_2d = True
+                            
                             if FLAG.train_2d == True:
                                 
                                 print ('2D is ON')
@@ -212,32 +215,45 @@ class HGgraphBuilder_MultiGPU():
                             self.tensor_16.append(tensor_16)
                             self.tensor_8.append(tensor_8)
                             self.loss += loss
+
+                    if FLAG.train_2d == True:
+                        with tf.variable_scope('summaries_2D'):
+                            label_sum = tf.reduce_sum(label[0][0],
+                                                      axis=-1)
+                            utils.add_summary.add_all(_x[0:1], label_sum,
+                                                      tf.reduce_sum(output[
+                                                                    -1:][0][
+                                                                        0],
+                                                                    axis=-1),
+                                                      loss)
+
+                            
+                    else:
+                        with tf.variable_scope('summaries_3D'):
+                            label_sum = tf.reduce_sum(
+                                tf.reduce_sum(label[0][0],
+                                              axis=-1), axis=-1)
+                            utils.add_summary.add_all(_x[0:1], label_sum,
+                                                      tf.reduce_sum(output[
+                                                                    -1:][0][
+                                                                        0],
+                                                                    axis=-1),
+                                                      loss)
+
+                            utils.add_summary.add_all_joints(
+                                utils.eval_utils.get_precision_MultiGPU(
+                                    output[-1:][0][0],
+                                    label[0], [64], FLAG), [64], FLAG)
                     
-                    tf.summary.scalar(('GPU_%d_' % (i)) + 'loss', loss)
                     # Retain the summaries from the final tower.
                     summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)
             
             self.loss /= len(map(int, FLAG.gpu_string.split('-')))
+            tf.summary.scalar('Overall_loss', self.loss)
 
-            #utils.add_summary.add_all_joints(
-            #	utils.eval_utils.get_precision_MultiGPU(self.output[0],
-            # self.label, [], FLAG), FLAG)
-            label_sum = None
             
-            if FLAG.train_2d == True:
-                label_sum = tf.reduce_sum(self.label[0][0][0],
-                                                    axis=-1)
-                utils.add_summary.add_all(self._x[0], label_sum,
-                                          tf.reduce_sum(self.output[
-                                                            0][-1][0][0],
-                                                        axis=-1), self.loss)
-            else:
-                label_sum = tf.reduce_sum(tf.reduce_sum(self.label[0][0][0],
-                                                        axis=-1), axis=-1)
-                utils.add_summary.add_all(self._x[0], label_sum,
-                                      tf.reduce_sum(self.output[
-                                                        0][-1][0][0],
-                                                    axis=-1), self.loss)
+            
+            
     
             
             # We must calculate the mean of each gradient. Note that this is the
@@ -288,11 +304,18 @@ class HGgraphBuilder_MultiGPU():
                 if FLAG.train_2d == True:
                     out = tf.reduce_sum(out, axis=-2)
                     
-                yy = tf.reshape(y[3-i], out.get_shape().as_list())
-
-                loss = tf.reduce_mean(tf.square(out - yy))
-                # Calculate the total loss for the current tower.
-                tf.add_to_collection('losses', loss)
+                    yy = tf.reshape(y[3-i], out.get_shape().as_list())
+    
+                    loss = tf.reduce_mean(tf.square(out - yy))
+                    # Calculate the total loss for the current tower.
+                    tf.add_to_collection('losses', loss)
+                else:
+                    yy = tf.reshape(y[3 - i], out.get_shape().as_list())
+    
+                    loss = tf.reduce_mean(tf.square(tf.reduce_sum(out - yy,
+                                                                  axis=-2)))
+                    # Calculate the total loss for the current tower.
+                    tf.add_to_collection('losses', loss)
         
         # Add final loss
         shape_ = output[-1][0].get_shape().as_list()

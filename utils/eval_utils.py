@@ -95,7 +95,9 @@ def get_coordinate_tensor(vol, steps, batch_size, vol_res, joints):
     cords = []
     total_dim = np.sum(np.array(steps))
     shape_ = vol.get_shape().as_list()
-    vol = tf.reshape(vol, [batch_size] + shape_[:-1], shape_[-1]/joints, joints)
+    vol = tf.reshape(vol, [batch_size] + shape_[1:-1]
+                                 + [shape_[-1] / joints,
+                                  joints], name= 'some')
 
 
     for bi in xrange(batch_size):
@@ -117,22 +119,20 @@ def get_coordinate_tensor(vol, steps, batch_size, vol_res, joints):
     return cords
 
 
-def get_precision_MultiGPU(output, y, scale, FLAG):
+def get_precision_MultiGPU(output, y, steps, FLAG):
     batch_size = FLAG.batch_size
     joints = FLAG.num_joints
-    steps = map(int, FLAG.structure_string.split('-'))
-    total_dim = np.sum(np.array(steps))
     vol_res = FLAG.volume_res
     output_cords = []
     y_cords = []
-    print(len(output))
-    for out_, y_ in zip(output[-2], y):
-        output_cords.append(
-            get_coordinate_tensor(out_, steps, batch_size, vol_res,
-                                  joints))
-        y_cords.append(get_coordinate_tensor(y_, steps, batch_size, vol_res,
-                                             joints))
-    
+    out_shape = output.get_shape().as_list()
+    y_ = tf.reshape(y, [FLAG.batch_size] + out_shape[1:])
+    output_cords.append(
+        get_coordinate_tensor(output, steps, batch_size, vol_res,
+                              joints))
+    y_cords.append(get_coordinate_tensor(y_, steps, batch_size, vol_res,
+                                         joints))
+
     # Convert list of arrays to tensor
     out_cord_t = tf.stack(output_cords)
     y_cord_t = tf.stack(y_cords)

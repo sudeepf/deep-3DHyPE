@@ -23,8 +23,12 @@ class DataHolder():
     def __init__(self, FLAG):
         self.FLAG = FLAG
         # get all the subjects
-        train_subjects = FLAG.data_split_string_train.split('-')
-        test_subjects = FLAG.data_split_string_test.split('-')
+        if FLAG.train_2d == False:
+            train_subjects = FLAG.data_split_string_train.split('-')
+            test_subjects = FLAG.data_split_string_test.split('-')
+        else:
+            train_subjects = FLAG.data_split_string_train_2d.split('-')
+            test_subjects = FLAG.data_split_string_test.split('-')
         
         # Train Folder and Test Folder
         print('Train Dataset: -> ', train_subjects)
@@ -56,8 +60,10 @@ class DataHolder():
         self.train_data_size = np.shape(self.imgFiles)[0]
         self.test_data_size = np.shape(self.imgFiles_test)[0]
         
-        print('Total Training Data Frames are ', self.train_data_size)
-        print('Total Testing Data Frames are ', self.test_data_size)
+        print('Total Training Data Frames are ', self.train_data_size,
+              self.FLAG.train_2d)
+        print('Total Testing Data Frames are ', self.test_data_size,
+              self.FLAG.train_2d)
         
         # initializing training and testing iterations
         self.train_iter = 0
@@ -69,15 +75,18 @@ class DataHolder():
     
     def read_mat_files(self):
         self.imgFiles, self.pose2, self.pose3 = \
-            data_prep.get_list_all_training_frames(self.mFiles_train, self.FLAG)
+            data_prep.get_list_all_training_frames(self.mFiles_train,
+                                                   self.FLAG.train_2d)
         
         self.imgFiles_test, self.pose2_test, self.pose3_test = \
-            data_prep.get_list_all_training_frames(self.mFiles_test, self.FLAG)
+            data_prep.get_list_all_training_frames(self.mFiles_test,
+                                                   self.FLAG.train_2d)
     
     def get_dict(self, train, imgFiles, pose2, pose3 = None):
         """Make a TensorFlow feed_dict: maps data onto Tensor placeholders."""
         steps = map(int, self.FLAG.structure_string.split('-'))
         total_dim = np.sum(np.array(steps))
+        
         
         if self.FLAG.train_2d == True:
             
@@ -116,11 +125,9 @@ class DataHolder():
 		been called, as it has all the information it needs, I totally needed
 		this function now my life becomes much simpler
 		"""
-        
         offset = min((self.train_iter * self.FLAG.batch_size), \
                      (self.train_data_size - self.FLAG.batch_size))
         mask_ = self.mask_train[offset:(offset + self.FLAG.batch_size)]
-        
         if self.FLAG.train_2d == False:
             fd = self.get_dict(True, self.imgFiles[mask_], self.pose2[mask_],
                                self.pose3[mask_])
