@@ -72,9 +72,9 @@ def main(_):
             # Every 10th step, measure test-set accuracy, and write test summaries
             # All other steps, run train_step on training data, & add training summaries
             yo = []
-            filename = '/home/sudeep/100P.mp4'
+            filename = '/home/sudeep/friends_indoor_clip.mp4'
             vid = imageio.get_reader(filename, 'ffmpeg')
-            for step in range(500, 6448, 2):
+            for step in range(600   , 6448, 20):
                 image_ = vid.get_data(step)
                 image_ = image_[:, 280:1000, :]
                 image_l = misc.imresize(image_, (256, 256)).astype(
