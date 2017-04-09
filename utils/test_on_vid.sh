@@ -7,4 +7,4 @@ nice -n 10 python test_on_vid.py \
 --sigma=1 \
 --gpu_string=0 \
 --learning_rate=2e-4 \
---load_ckpt_path=./tensor_record/tmp/new/model64-64-64.ckpt
+--load_ckpt_path=./tensor_record/tmp/new3/model64-64-64.ckpt
