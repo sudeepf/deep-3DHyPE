@@ -223,7 +223,7 @@ class HGgraphBuilder_MultiGPU():
                             utils.add_summary.add_all(_x[0:1], label_sum,
                                                       tf.reduce_sum(output[
                                                                     -1:][0][
-                                                                        0],
+                                                                        0][0],
                                                                     axis=-1),
                                                       loss)
 
@@ -236,7 +236,7 @@ class HGgraphBuilder_MultiGPU():
                             utils.add_summary.add_all(_x[0:1], label_sum,
                                                       tf.reduce_sum(output[
                                                                     -1:][0][
-                                                                        0],
+                                                                        0][0],
                                                                     axis=-1),
                                                       loss)
 
