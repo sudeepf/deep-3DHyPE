@@ -33,18 +33,18 @@ for i=1:length(RELEASE.annolist)
         %% Here We change the index
         joints_hum3(1,:) = 0.5*(joints_mpi(10,:)) + 0.5*(joints_mpi(9,:));
         joints_hum3(2,:) = 0.05*(joints_mpi(10,:)) + 0.95*(joints_mpi(9,:));
-        joints_hum3(3,:) = joints_mpi(14,:);
-        joints_hum3(4,:) = joints_mpi(15,:);
-        joints_hum3(5,:) = joints_mpi(16,:);
-        joints_hum3(6,:) = joints_mpi(13,:);
-        joints_hum3(7,:) = joints_mpi(12,:);
-        joints_hum3(8,:) = joints_mpi(11,:);
-        joints_hum3(9,:) = joints_mpi(4,:);
-        joints_hum3(10,:) = joints_mpi(5,:);
-        joints_hum3(11,:) = joints_mpi(6,:);
-        joints_hum3(12,:) = joints_mpi(3,:);
-        joints_hum3(13,:) = joints_mpi(2,:);
-        joints_hum3(14,:) = joints_mpi(1,:);
+        joints_hum3(3,:) = joints_mpi(13,:);
+        joints_hum3(4,:) = joints_mpi(12,:);
+        joints_hum3(5,:) = joints_mpi(11,:);
+        joints_hum3(6,:) = joints_mpi(14,:);
+        joints_hum3(7,:) = joints_mpi(15,:);
+        joints_hum3(8,:) = joints_mpi(16,:);
+        joints_hum3(9,:) = joints_mpi(3,:);
+        joints_hum3(10,:) = joints_mpi(2,:);
+        joints_hum3(11,:) = joints_mpi(1,:);
+        joints_hum3(12,:) = joints_mpi(4,:);
+        joints_hum3(13,:) = joints_mpi(5,:);
+        joints_hum3(14,:) = joints_mpi(6,:);
 
         %%
         %hold on
