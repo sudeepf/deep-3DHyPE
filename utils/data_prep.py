@@ -265,13 +265,12 @@ def volumize_gt(image_b, pose2_b, pose3_b, resize_factor, im_resize_factor,
 
 def get_vector_gt(image_b, pose2_b, pose3_b, FLAG):
     num_of_data = FLAG.batch_size
-    vec_64 = np.empty((FLAG.batch_size, 3, FLAG.num_joints, FLAG.volume_res))
     vec_32 = np.empty(
-        (FLAG.batch_size, 3, FLAG.num_joints, FLAG.volume_res // 2))
+        (FLAG.batch_size, 3, FLAG.num_joints, FLAG.volume_res // 1))
     vec_16 = np.empty(
-        (FLAG.batch_size, 3, FLAG.num_joints, FLAG.volume_res // 4))
+        (FLAG.batch_size, 3, FLAG.num_joints, FLAG.volume_res // 2))
     vec_8 = np.empty(
-        (FLAG.batch_size, 3, FLAG.num_joints, FLAG.volume_res // 8))
+        (FLAG.batch_size, 3, FLAG.num_joints, FLAG.volume_res // 4))
     pose2 = []
     pose3 = []
     image = np.empty((FLAG.batch_size, FLAG.image_res, FLAG.image_res, 3))
@@ -290,63 +289,53 @@ def get_vector_gt(image_b, pose2_b, pose3_b, FLAG):
         p3_[:, 2] += FLAG.volume_res / 2
         
         for jj in xrange(14):
-            for kk in xrange(FLAG.volume_res):
-                vec_64[ii, 0, jj, kk] = gaussian(kk, p3_[jj, 0], FLAG.sigma,
+            for kk in xrange(FLAG.volume_res / 1):
+                vec_32[ii, 0, jj, kk] = gaussian(kk, p3_[jj, 0] // 1,
+                                                 FLAG.sigma,
                                                  FLAG.joint_prob_max)
-                vec_64[ii, 1, jj, kk] = gaussian(kk, p3_[jj, 1], FLAG.sigma,
+                vec_32[ii, 1, jj, kk] = gaussian(kk, p3_[jj, 1] // 1,
+                                                 FLAG.sigma,
                                                  FLAG.joint_prob_max)
-                vec_64[ii, 2, jj, kk] = gaussian(kk, p3_[jj, 2], FLAG.sigma,
+                vec_32[ii, 2, jj, kk] = gaussian(kk, p3_[jj, 2] // 1,
+                                                 FLAG.sigma,
                                                  FLAG.joint_prob_max)
         
         for jj in xrange(14):
             for kk in xrange(FLAG.volume_res / 2):
-                vec_32[ii, 0, jj, kk] = gaussian(kk, p3_[jj, 0] // 2,
+                vec_16[ii, 0, jj, kk] = gaussian(kk, p3_[jj, 0] // 2,
                                                  FLAG.sigma,
                                                  FLAG.joint_prob_max)
-                vec_32[ii, 1, jj, kk] = gaussian(kk, p3_[jj, 1] // 2,
+                vec_16[ii, 1, jj, kk] = gaussian(kk, p3_[jj, 1] // 2,
                                                  FLAG.sigma,
                                                  FLAG.joint_prob_max)
-                vec_32[ii, 2, jj, kk] = gaussian(kk, p3_[jj, 2] // 2,
+                vec_16[ii, 2, jj, kk] = gaussian(kk, p3_[jj, 2] // 2,
                                                  FLAG.sigma,
                                                  FLAG.joint_prob_max)
         
         for jj in xrange(14):
             for kk in xrange(FLAG.volume_res / 4):
-                vec_16[ii, 0, jj, kk] = gaussian(kk, p3_[jj, 0] // 4,
-                                                 FLAG.sigma,
-                                                 FLAG.joint_prob_max)
-                vec_16[ii, 1, jj, kk] = gaussian(kk, p3_[jj, 1] // 4,
-                                                 FLAG.sigma,
-                                                 FLAG.joint_prob_max)
-                vec_16[ii, 2, jj, kk] = gaussian(kk, p3_[jj, 2] // 4,
-                                                 FLAG.sigma,
-                                                 FLAG.joint_prob_max)
-        
-        for jj in xrange(14):
-            for kk in xrange(FLAG.volume_res / 8):
-                vec_8[ii, 0, jj, kk] = gaussian(kk, p3_[jj, 0] // 8, FLAG.sigma,
+                vec_8[ii, 0, jj, kk] = gaussian(kk, p3_[jj, 0] // 4, FLAG.sigma,
                                                 FLAG.joint_prob_max)
-                vec_8[ii, 1, jj, kk] = gaussian(kk, p3_[jj, 1] // 8, FLAG.sigma,
+                vec_8[ii, 1, jj, kk] = gaussian(kk, p3_[jj, 1] // 4, FLAG.sigma,
                                                 FLAG.joint_prob_max)
-                vec_8[ii, 2, jj, kk] = gaussian(kk, p3_[jj, 2] // 8, FLAG.sigma,
+                vec_8[ii, 2, jj, kk] = gaussian(kk, p3_[jj, 2] // 4, FLAG.sigma,
                                                 FLAG.joint_prob_max)
         
         pose2.append(p2_)
         pose3.append(p3_)
         image[ii, :, :, :] = im_
     
-    return image, pose2, pose3, vec_64, vec_32, vec_16, vec_8
+    return image, pose2, pose3, vec_32, vec_16, vec_8
 
 
 def get_vector_gt_2d(image_b, pose2_b, FLAG):
     num_of_data = FLAG.batch_size
-    vec_64 = np.empty((FLAG.batch_size, 2, FLAG.num_joints, FLAG.volume_res))
     vec_32 = np.empty(
-        (FLAG.batch_size, 2, FLAG.num_joints, FLAG.volume_res // 2))
+        (FLAG.batch_size, 2, FLAG.num_joints, FLAG.volume_res // 1))
     vec_16 = np.empty(
-        (FLAG.batch_size, 2, FLAG.num_joints, FLAG.volume_res // 4))
+        (FLAG.batch_size, 2, FLAG.num_joints, FLAG.volume_res // 2))
     vec_8 = np.empty(
-        (FLAG.batch_size, 2, FLAG.num_joints, FLAG.volume_res // 8))
+        (FLAG.batch_size, 2, FLAG.num_joints, FLAG.volume_res // 4))
     pose2 = []
     
     image = np.empty((FLAG.batch_size, FLAG.image_res, FLAG.image_res, 3))
@@ -359,42 +348,36 @@ def get_vector_gt_2d(image_b, pose2_b, FLAG):
         p2_ = pose2_b[ii] / size_scale_
         #plt.imshow(im_)
         #plt.show()
+        
         for jj in xrange(14):
-            for kk in xrange(FLAG.volume_res):
-                vec_64[ii, 0, jj, kk] = gaussian(kk, p2_[jj, 0], FLAG.sigma,
+            for kk in xrange(FLAG.volume_res / 1):
+                vec_32[ii, 0, jj, kk] = gaussian(kk, p2_[jj, 0] // 1,
+                                                 FLAG.sigma,
                                                  FLAG.joint_prob_max)
-                vec_64[ii, 1, jj, kk] = gaussian(kk, p2_[jj, 1], FLAG.sigma,
+                vec_32[ii, 1, jj, kk] = gaussian(kk, p2_[jj, 1] // 1,
+                                                 FLAG.sigma,
                                                  FLAG.joint_prob_max)
         
         for jj in xrange(14):
             for kk in xrange(FLAG.volume_res / 2):
-                vec_32[ii, 0, jj, kk] = gaussian(kk, p2_[jj, 0] // 2,
+                vec_16[ii, 0, jj, kk] = gaussian(kk, p2_[jj, 0] // 2,
                                                  FLAG.sigma,
                                                  FLAG.joint_prob_max)
-                vec_32[ii, 1, jj, kk] = gaussian(kk, p2_[jj, 1] // 2,
+                vec_16[ii, 1, jj, kk] = gaussian(kk, p2_[jj, 1] // 2,
                                                  FLAG.sigma,
                                                  FLAG.joint_prob_max)
         
         for jj in xrange(14):
             for kk in xrange(FLAG.volume_res / 4):
-                vec_16[ii, 0, jj, kk] = gaussian(kk, p2_[jj, 0] // 4,
-                                                 FLAG.sigma,
-                                                 FLAG.joint_prob_max)
-                vec_16[ii, 1, jj, kk] = gaussian(kk, p2_[jj, 1] // 4,
-                                                 FLAG.sigma,
-                                                 FLAG.joint_prob_max)
-        
-        for jj in xrange(14):
-            for kk in xrange(FLAG.volume_res / 8):
-                vec_8[ii, 0, jj, kk] = gaussian(kk, p2_[jj, 0] // 8, FLAG.sigma,
+                vec_8[ii, 0, jj, kk] = gaussian(kk, p2_[jj, 0] // 4, FLAG.sigma,
                                                 FLAG.joint_prob_max)
-                vec_8[ii, 1, jj, kk] = gaussian(kk, p2_[jj, 1] // 8, FLAG.sigma,
+                vec_8[ii, 1, jj, kk] = gaussian(kk, p2_[jj, 1] // 4, FLAG.sigma,
                                                 FLAG.joint_prob_max)
         
         pose2.append(p2_)
         image[ii] = im_
 
-    return image, pose2, vec_64, vec_32, vec_16, vec_8
+    return image, pose2, vec_32, vec_16, vec_8
 
 
 def volumize_vec_gpu(tensor_x, tensor_y, tensor_z, scale, FLAG):

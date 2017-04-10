@@ -1,17 +1,22 @@
 import tensorflow as tf
-
+import numpy as np
 
 class stacked_hourglass():
-    def __init__(self, steps, name='stacked_hourglass'):
+    def __init__(self, steps, FLAG, name='stacked_hourglass'):
         self.nb_stack = len(steps)
         self.steps = steps
         self.name = name
-        self.module_supervisions = [[], [], [], [], []]
-    
+        self.module_supervisions = [[], [], [], []]
+        self.FLAG = FLAG
+        
     def __call__(self, x):
         with tf.name_scope(self.name) as scope:
             padding = tf.pad(x, [[0, 0], [3, 3], [3, 3], [0, 0]],
                              name='padding')
+            
+            # First Thing first: get encoder wts
+            
+            self.refiner_wts = self._get_refiner_wts(self.FLAG)
             with tf.variable_scope("preprocessing") as sc:
                 conv1 = self._conv(padding, 64, 7, 2, 'VALID', 'conv1')
                 norm1 = tf.contrib.layers.batch_norm(conv1, 0.9, epsilon=1e-5,
@@ -22,7 +27,11 @@ class stacked_hourglass():
                                                     scope=scope)
                 r2 = self._residual_block(pool, 128, 'r2')
                 r3_h = self._residual_block(r2, 256, 'r3_h')
-                r3 = self._residual_block(r3_h, 256, 'r3')
+                r3 = tf.contrib.layers.max_pool2d(r3_h, [2, 2], [2, 2], 'VALID',
+                                                  scope=scope)
+                r3 = self._residual_block(r3, 1024, 'r3')
+                
+            
             hg = [None] * self.nb_stack
             ll = [None] * self.nb_stack
             ll_ = [None] * self.nb_stack
@@ -30,43 +39,135 @@ class stacked_hourglass():
             out_ = [None] * self.nb_stack
             sum_ = [None] * self.nb_stack
             with tf.variable_scope('_hourglass_0_with_supervision') as sc:
-                hg[0] = self._hourglass(r3, 4, 64 * 14, '_hourglass', 0)
-                ll[0] = self._conv_bn_relu(hg[0], 256, name='conv_1')
-                ll_[0] = self._conv(ll[0], 256, 1, 1, 'VALID', 'll')
-                out[0] = self._conv(ll[0], 14 * 64, 1, 1, 'VALID', 'out')
-                out_[0] = self._conv(out[0], 256, 1, 1, 'VALID', 'out_')
-                sum_[0] = tf.add_n([ll_[0], out_[0], r3])
+                hg[0] = self._hourglass(r3, 3, 32 * 14, '_hourglass', 0)
+                ll[0] = self._conv_bn_relu(hg[0], 1024, name='conv_1')
+                sum_[0] = tf.add(ll[0], r3)
             for i in range(1, self.nb_stack - 1):
                 with tf.variable_scope(
                             '_hourglass_' + str(i) + '_with_supervision') as sc:
-                    hg[i] = self._hourglass(sum_[i - 1], 4, 64 * 14,
+                    hg[i] = self._hourglass(sum_[i - 1], 3, 32 * 14,
                                             '_hourglass', i)
-                    ll[i] = self._conv_bn_relu(hg[i], 256, name='conv_1')
-                    ll_[i] = self._conv(ll[i], 256, 1, 1, 'VALID', 'll')
-                    out[i] = self._conv(ll[i], 14 * 64, 1, 1, 'VALID', 'out')
-                    out_[i] = self._conv(out[i], 256, 1, 1, 'VALID', 'out_')
-                    sum_[i] = tf.add_n([ll_[i], out_[i], sum_[i - 1]])
+                    ll_[i] = self._conv(hg[i], 1024, 1, 1, 'VALID', 'll')
+                    sum_[i] = tf.add(ll_[i], sum_[i - 1])
             with tf.variable_scope(
                         '_hourglass_' + str(
                             self.nb_stack - 1) + '_with_supervision') as sc:
                 hg[self.nb_stack - 1] = self._hourglass(sum_[self.nb_stack - 2],
-                                                        4,
-                                                        64 * 14,
+                                                        3,
+                                                        32 * 14,
                                                         '_hourglass',
                                                         self.nb_stack - 1)
-                ll[self.nb_stack - 1] = self._conv_bn_relu(
-                    hg[self.nb_stack - 1], 256,
-                    name='conv_1')
+
                 self.module_supervisions[-1].append(
-                    self._conv(ll[self.nb_stack - 1],
-                               14 * self.steps[self.nb_stack - 1],
-                               1, 1,
-                               'VALID', 'out'))
-            
-            # return tf.concat(out, axis=3)
-            # return self.module_supervisions
+                    self._refiner(self._conv(hg[self.nb_stack - 1],
+                                                                 32*14, 1,
+                                                             1, 'VALID',
+                                                                         'll'),
+                                                              self.FLAG,
+                                                              self.refiner_wts))
+                
+                
             return self.module_supervisions
+        
+    def _get_refiner_wts(self, FLAG):
+        wts = {}
+        with tf.variable_scope('RefinerNet/'):
+            init1 = tf.contrib.layers.xavier_initializer_conv2d(uniform=True)
+            flatten_size = FLAG.volume_res * FLAG.volume_res * \
+                           FLAG.volume_res
+        
+            wts['w_p'] = tf.get_variable('Matrix1', [flatten_size, FLAG.ref_1],
+                                     tf.float32, init1)
+            # tf.random_normal_initializer(stddev=0.02))
+            wts['b_p'] = tf.get_variable('bias1', [FLAG.ref_1],
+                                     initializer=tf.constant_initializer(0.0))
+        
+            wts['w_p1'] = tf.get_variable('Matrix2', [FLAG.num_joints *
+                                                  FLAG.ref_1,
+                                                  FLAG.ref_2],
+                                      tf.float32, init1)
+            # tf.random_normal_initializer(stddev=0.02))
+            wts['b_p1'] = tf.get_variable('bias2', [FLAG.ref_2],
+                                      initializer=tf.constant_initializer(0.0))
+        
+            wts['w_p2'] = tf.get_variable('Matrix3', [FLAG.ref_2,
+                                                  FLAG.ref_3],
+                                      tf.float32, init1)
+            # tf.random_normal_initializer(stddev=0.02))
+            wts['b_p2'] = tf.get_variable('bias3', [FLAG.ref_3],
+                                      initializer=tf.constant_initializer(0.0))
+        
+            wts['w_p3'] = tf.get_variable('Matrix4', [FLAG.ref_3,
+                                                  FLAG.ref_2],
+                                      tf.float32, init1)
+            # tf.random_normal_initializer(stddev=0.02))
+            wts['b_p3'] = tf.get_variable('bias4', [FLAG.ref_2],
+                                      initializer=tf.constant_initializer(0.0))
+        
+            wts['w_p4'] = tf.get_variable('Matrix5', [FLAG.ref_2,
+                                                  FLAG.num_joints * FLAG.ref_1],
+                                      tf.float32, init1)
+            # tf.random_normal_initializer(stddev=0.02))
+            wts['b_p4'] = tf.get_variable('bias5', [FLAG.num_joints * FLAG.ref_1],
+                                      initializer=tf.constant_initializer(0.0))
+        
+            wts['w_p5'] = tf.get_variable('Matrix6', [FLAG.ref_1, flatten_size],
+                                      tf.float32, init1)
+            # tf.random_normal_initializer(stddev=0.02))
+            wts['b_p5'] = tf.get_variable('bias6', [flatten_size],
+                                      initializer=tf.constant_initializer(0.0))
     
+        return wts
+    
+    
+    def _refiner(self, input, FLAG, wts):
+    
+        with tf.name_scope('RefinerNet/'):
+            
+            shape_ = input.get_shape().as_list()
+            input_ = tf.reshape(input, [FLAG.batch_size] + shape_[1:-1]
+                               + [shape_[-1] / FLAG.num_joints,
+                                  FLAG.num_joints])
+            
+            
+            joint_features = []
+            
+            for v in range(14):
+                in_ = input_[:,:,:,:,v]
+                shape = in_.get_shape().as_list()
+                dim = np.prod(shape[1:])
+                in_f = tf.reshape(in_, [-1, dim])
+                joint_features.append(tf.nn.bias_add(tf.matmul(in_f,
+                                                               wts['w_p']),
+                    wts['b_p']))
+            
+            joint_vector = tf.concat(joint_features,axis=1)
+
+            
+            rep_1 = tf.nn.bias_add(tf.matmul(joint_vector, wts['w_p1']), wts['b_p1'])
+
+            rep_2 = tf.nn.bias_add(tf.matmul(rep_1, wts['w_p2']), wts['b_p2'])
+
+            rep_3 = tf.nn.bias_add(tf.matmul(rep_2, wts['w_p3']), wts['b_p3'])
+
+            rep_4 = tf.nn.bias_add(tf.matmul(rep_3, wts['w_p4']), wts['b_p4'])
+
+            outputs = []
+            for v in range(0,FLAG.num_joints * FLAG.ref_1, FLAG.ref_1):
+                vin = rep_4[:,v:v+FLAG.ref_1]
+                
+                vout = tf.nn.bias_add(tf.matmul(vin, wts['w_p5']), wts['b_p5'])
+                outputs.append(tf.reshape(vout, [FLAG.batch_size] + shape_[1:-1]
+                               + [shape_[-1] / FLAG.num_joints, 1]))
+            output_ = tf.concat(outputs, axis=-1)
+            
+            out_r = tf.reshape(output_, [FLAG.batch_size, FLAG.volume_res,
+                                         FLAG.volume_res,
+                                         FLAG.volume_res*FLAG.num_joints])
+            
+            return out_r
+            
+
     def _conv(self, inputs, nb_filter, kernel_size=1, strides=1, pad='VALID',
               name='conv'):
         with tf.variable_scope(name) as scope:
@@ -167,7 +268,12 @@ class stacked_hourglass():
             
             self.module_supervisions[n - 1].append(lower1)
             
-            if n < 4:
+            #if n == 3:
+                #lower1 = self._refiner(lower1, self.FLAG, self.refiner_wts)
+                #print(lower1.get_shape().as_list())
+                #self.module_supervisions[n].append(lower1)
+            
+            if n < 3:
                 lower2 = tf.image.resize_nearest_neighbor(lower1,
                                                           tf.shape(lower1)[
                                                           1:3] * 2,

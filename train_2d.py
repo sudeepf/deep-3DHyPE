@@ -111,7 +111,6 @@ def main(_):
                     print('Adding Model data for ', step, 'at ', save_path)
                 
                 _x = []
-                vec_64 = []
                 vec_32 = []
                 vec_16 = []
                 vec_8 = []
@@ -126,22 +125,18 @@ def main(_):
                     if FLAG.train_2d == True:
                         fd = DataHolder_2D.get_next_train_batch()
                         _x.append(fd[0])
-                        vec_64.append(fd[1])
-                        vec_32.append(fd[2])
-                        vec_16.append(fd[3])
-                        vec_8.append(fd[4])
+                        vec_32.append(fd[1])
+                        vec_16.append(fd[2])
+                        vec_8.append(fd[3])
                     else:
                         fd = DataHolder_3D.get_next_train_batch()
                         _x.append(fd[0])
-                        vec_64.append(fd[1])
-                        vec_32.append(fd[2])
-                        vec_16.append(fd[3])
-                        vec_8.append(fd[4])
+                        vec_32.append(fd[1])
+                        vec_16.append(fd[2])
+                        vec_8.append(fd[3])
                     # gt.append(fd[5])
                 
                 feed_dict_x = {i: d for i, d in zip(builder._x, _x)}
-                feed_dict_vec_64 = {i: d for i, d in
-                                    zip(builder.tensor_64, vec_64)}
                 feed_dict_vec_32 = {i: d for i, d in
                                     zip(builder.tensor_32, vec_32)}
                 feed_dict_vec_16 = {i: d for i, d in
@@ -149,7 +144,6 @@ def main(_):
                 feed_dict_vec_8 = {i: d for i, d in
                                    zip(builder.tensor_8, vec_8)}
                 feed_dict_gt = {i: d for i, d in zip(builder.gt, gt)}
-                feed_dict_x.update(feed_dict_vec_64)
                 feed_dict_x.update(feed_dict_vec_32)
                 feed_dict_x.update(feed_dict_vec_16)
                 feed_dict_x.update(feed_dict_vec_8)

@@ -62,7 +62,7 @@ def get_flags(config_file=None):
     # Flags governing learning, output, and peprocessing parameters
     tf.app.flags.DEFINE_integer('batch_size', 32,
                                 """batch size for the learning""")
-    tf.app.flags.DEFINE_integer('volume_res', 64,
+    tf.app.flags.DEFINE_integer('volume_res', 32,
                                 """Volume Resolution of the output""")
     tf.app.flags.DEFINE_integer('num_joints', 14,
                                 """Total number of joints tobe estimated""")
@@ -84,5 +84,19 @@ def get_flags(config_file=None):
 	                          convergence maybe""")
     tf.app.flags.DEFINE_boolean('train_2d', False, """This will tell if it
                                 should be trained on 2D or 3D""")
+    
+    #Refiner Parameters
+    tf.app.flags.DEFINE_integer('ref_1', 512,
+                                """Size which the 32x32x32 for each joint is
+                                converted to
+                                """)
+    tf.app.flags.DEFINE_integer('ref_2', 4096,
+                                """Size which the 32x32x32 for each joint is
+                                converted to
+                                """)
+    tf.app.flags.DEFINE_integer('ref_3', 2048,
+                                """Size which the 32x32x32 for each joint is
+                                converted to
+                                """)
     
     return FLAGS

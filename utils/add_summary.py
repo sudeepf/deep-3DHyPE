@@ -73,7 +73,7 @@ def add_all(x, input, output, loss):
     image_summaries(img, 'input_')
     
     # get heatmap on output
-    img = tf.reshape(output, (1, 64, 64, 1))
+    img = tf.reshape(output, (1, 32, 32, 1))
     x_min = tf.reduce_min(img)
     x_max = tf.reduce_max(img)
     img = (img - x_min) / (x_max - x_min)
@@ -83,7 +83,7 @@ def add_all(x, input, output, loss):
 
     # get heatmap on input
     print (input.get_shape().as_list())
-    img = tf.reshape(input, (1, 64, 64, 1))
+    img = tf.reshape(input, (1, 32, 32, 1))
     x_min = tf.reduce_min(img)
     x_max = tf.reduce_max(img)
     img = (img - x_min) / (x_max - x_min)

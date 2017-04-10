@@ -70,11 +70,9 @@ class HGgraphBuilder_MultiGPU():
             self.tensor_8 = []
             self.tensor_16 = []
             self.tensor_32 = []
-            self.tensor_64 = []
             self.tensor_8_2d = []
             self.tensor_16_2d = []
             self.tensor_32_2d = []
-            self.tensor_64_2d = []
             steps = map(int, FLAG.structure_string.split('-'))
             total_dim = np.sum(np.array(steps))
             
@@ -113,30 +111,24 @@ class HGgraphBuilder_MultiGPU():
                                                            [FLAG.batch_size,
                                                             2, FLAG.num_joints,
                                                             32])
-                                tensor_64 = tf.placeholder(tf.float32,
-                                                           [FLAG.batch_size,
-                                                            2, FLAG.num_joints,
-                                                            64])
-
-                                label.append(tf.scalar_mul(mult_fac,
-                                    utils.data_prep.heatmap_vec_gpu(
-                                        tensor_64[:, 0],
-                                        tensor_64[:, 1], 1, FLAG)))
+                                
 
                                 label.append(tf.scalar_mul(mult_fac,
                                     utils.data_prep.heatmap_vec_gpu(
                                         tensor_32[:, 0],
-                                        tensor_32[:, 1], 2, FLAG)))
+                                        tensor_32[:, 1], 1, FLAG)))
 
                                 label.append(tf.scalar_mul(mult_fac,
                                     utils.data_prep.heatmap_vec_gpu(
                                         tensor_16[:, 0],
-                                        tensor_16[:, 1], 4, FLAG)))
+                                        tensor_16[:, 1], 2, FLAG)))
 
                                 label.append(tf.scalar_mul(mult_fac,
                                     utils.data_prep.heatmap_vec_gpu(
                                         tensor_8[:, 0],
-                                        tensor_8[:, 1], 8, FLAG)))
+                                        tensor_8[:, 1], 4, FLAG)))
+
+                                
                             
                             else:
                                 
@@ -152,37 +144,29 @@ class HGgraphBuilder_MultiGPU():
                                                            [FLAG.batch_size,
                                                             3, FLAG.num_joints,
                                                             32])
-                                tensor_64 = tf.placeholder(tf.float32,
-                                                           [FLAG.batch_size,
-                                                            3, FLAG.num_joints,
-                                                            64])
+                                
                             
-                                label.append(tf.scalar_mul(mult_fac,
-                                    utils.data_prep.volumize_vec_gpu(
-                                         tensor_64[:,0],
-                                         tensor_64[:,1],
-                                         tensor_64[:,
-                                         2], 1, FLAG)))
+                                
                             
                                 label.append(tf.scalar_mul(mult_fac,
                                     utils.data_prep.volumize_vec_gpu(
                                         tensor_32[:, 0],
                                         tensor_32[:, 1],
-                                        tensor_32[:, 2], 2, FLAG)))
+                                        tensor_32[:, 2], 1, FLAG)))
     
                                 label.append(tf.scalar_mul(mult_fac,
                                     utils.data_prep.volumize_vec_gpu(
                                         tensor_16[:, 0],
                                         tensor_16[:, 1],
                                         tensor_16[:,
-                                        2], 4, FLAG)))
+                                        2], 2, FLAG)))
     
                                 label.append(tf.scalar_mul(mult_fac,
                                     utils.data_prep.volumize_vec_gpu(
                                         tensor_8[:, 0],
                                         tensor_8[:, 1],
                                         tensor_8[:,
-                                        2], 8, FLAG)))
+                                        2], 4, FLAG)))
                             
                             # label = utils.data_prep.prepare_output_gpu(y, steps, FLAG)
                             self.label.append(label)
@@ -210,7 +194,6 @@ class HGgraphBuilder_MultiGPU():
                             self._x.append(_x)
                             self.y.append(label[0])
                             self.gt.append(gt)
-                            self.tensor_64.append(tensor_64)
                             self.tensor_32.append(tensor_32)
                             self.tensor_16.append(tensor_16)
                             self.tensor_8.append(tensor_8)
@@ -243,7 +226,7 @@ class HGgraphBuilder_MultiGPU():
                             utils.add_summary.add_all_joints(
                                 utils.eval_utils.get_precision_MultiGPU(
                                     output[-1:][0][0],
-                                    label[0], [64], FLAG), [64], FLAG)
+                                    label[0], [32], FLAG), [32], FLAG)
                     
                     # Retain the summaries from the final tower.
                     summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)
@@ -290,7 +273,7 @@ class HGgraphBuilder_MultiGPU():
         
         # with tf.variable_scope(scope):
         
-        output = hg.stacked_hourglass(steps, 'stacked_hourglass')(_x)
+        output = hg.stacked_hourglass(steps, FLAG, 'stacked_hourglass')(_x)
         
         # Defining Loss with root mean square error
         # loss = tf.reduce_mean(tf.square(output - y))
@@ -304,13 +287,16 @@ class HGgraphBuilder_MultiGPU():
                 if FLAG.train_2d == True:
                     out = tf.reduce_sum(out, axis=-2)
                     
-                    yy = tf.reshape(y[3-i], out.get_shape().as_list())
-    
+                    if i < len(y):
+                        yy = tf.reshape(y[2-i], out.get_shape().as_list())
+                    else:
+                        yy = tf.reshape(y[0], out.get_shape().as_list())
+                    
                     loss = tf.reduce_mean(tf.square(out - yy))
                     # Calculate the total loss for the current tower.
                     tf.add_to_collection('losses', loss)
                 else:
-                    yy = tf.reshape(y[3 - i], out.get_shape().as_list())
+                    yy = tf.reshape(y[2 - i], out.get_shape().as_list())
     
                     loss = tf.reduce_mean(tf.square(tf.reduce_sum(out - yy,
                                                                   axis=-2)))
@@ -319,7 +305,7 @@ class HGgraphBuilder_MultiGPU():
         
         # Add final loss
         shape_ = output[-1][0].get_shape().as_list()
-        out = tf.reshape(output[-1][0], [FLAG.batch_size] + shape_[1:-1]
+        out = tf.reshape(output[-1][-1], [FLAG.batch_size] + shape_[1:-1]
                          + [shape_[-1] / FLAG.num_joints,
                             FLAG.num_joints])
 

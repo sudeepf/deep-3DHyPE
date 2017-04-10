@@ -97,7 +97,7 @@ class DataHolder():
                 image_b,
                 pose2_b, None, self.FLAG)
            
-            image, pose2, vec_64, vec_32, vec_16, vec_8 = \
+            image, pose2, vec_32, vec_16, vec_8 = \
                 utils.data_prep.get_vector_gt_2d(image_b, pose2_b,
                                               self.FLAG)
             
@@ -112,12 +112,12 @@ class DataHolder():
                 pose2_b,
                 pose3_b, self.FLAG)
 	
-            image, pose2, pose3, vec_64, vec_32, vec_16, vec_8 = \
+            image, pose2, pose3, vec_32, vec_16, vec_8 = \
                 utils.data_prep.get_vector_gt(image_b, pose2_b, pose3_b,
                                               self.FLAG)
     
         
-        return image, vec_64, vec_32, vec_16, vec_8, pose3
+        return image, vec_32, vec_16, vec_8, pose3
     
     def get_next_train_batch(self):
         """
@@ -141,4 +141,4 @@ class DataHolder():
             self.train_iter = 0
             self.mask_train = np.random.permutation(self.train_data_size)
         
-        return fd[0], fd[1], fd[2], fd[3], fd[4]
+        return fd[0], fd[1], fd[2], fd[3]
