@@ -106,9 +106,9 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
         hW = np.max(max_ - min_)
         midP = np.mean(p2_v, axis=0)
         
-        verSkw = np.random.uniform(0.2, 0.8)
+        verSkw = np.random.uniform(0.3, 0.8)
         horizSkw = np.random.uniform(0.3, 0.5)
-        incSiz = np.random.uniform(hW * -0.2, hW * 0.8)
+        incSiz = np.random.uniform(hW * 0.0, hW * 1)
 
         if FLAG.train_2d == True:
             verSkw = np.random.uniform(0.5, 0.5)

@@ -16,7 +16,8 @@ class stacked_hourglass():
             
             # First Thing first: get encoder wts
             
-            self.refiner_wts = self._get_refiner_wts(self.FLAG)
+            #self.refiner_wts = self._get_refiner_wts(self.FLAG)
+            
             with tf.variable_scope("preprocessing") as sc:
                 conv1 = self._conv(padding, 64, 7, 2, 'VALID', 'conv1')
                 norm1 = tf.contrib.layers.batch_norm(conv1, 0.9, epsilon=1e-5,
@@ -59,12 +60,8 @@ class stacked_hourglass():
                                                         self.nb_stack - 1)
 
                 self.module_supervisions[-1].append(
-                    self._refiner(self._conv(hg[self.nb_stack - 1],
-                                                                 32*14, 1,
-                                                             1, 'VALID',
-                                                                         'll'),
-                                                              self.FLAG,
-                                                              self.refiner_wts))
+                    self._conv(hg[self.nb_stack - 1], 32*14, 1, 1, 'VALID',
+                                                                         'finalOut'))
                 
                 
             return self.module_supervisions
