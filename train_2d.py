@@ -85,8 +85,8 @@ def main(_):
                       (ckpt.model_checkpoint_path, global_step))
             else:
                 print('No checkpoint file found')
-                #tf.global_variables_initializer().run()
-                saver.restore(sess, "./tensor_record//tmp/model64-64-64.ckpt")
+                tf.global_variables_initializer().run()
+                #saver.restore(sess, "./tensor_record//tmp/model64-64-64.ckpt")
                 print('model Initialized...')
             
             print("Let the Training Begin...")
