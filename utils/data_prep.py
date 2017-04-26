@@ -172,7 +172,9 @@ def crop_data_top_down(images, pose2, pose3=None, FLAG=None):
         
         if pose3 is not None:
             pose3_.append(pose3[ii, :, :])
-            
+    
+    print (FLAG.train_2d)
+    
     if FLAG.train_2d == True:
         return images_, pose2_, None
         
@@ -275,7 +277,7 @@ def get_vector_gt(image_b, pose2_b, pose3_b, FLAG):
     pose2 = []
     pose3 = []
     image = np.empty((FLAG.batch_size, FLAG.image_res, FLAG.image_res, 3))
-    
+    print(pose3_b)
     for ii in xrange(num_of_data):
         # print (ii, im_resize_factor, np.shape(image_b[ii]))
         im_ = misc.imresize(image_b[ii], (FLAG.image_res, FLAG.image_res))

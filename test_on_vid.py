@@ -7,6 +7,7 @@ import os
 from os.path import isfile, join
 import numpy as np
 from scipy import misc
+from scipy import ndimage
 
 import sys
 import numpy as np
@@ -72,11 +73,21 @@ def main(_):
             # Every 10th step, measure test-set accuracy, and write test summaries
             # All other steps, run train_step on training data, & add training summaries
             yo = []
-            filename = '/home/sudeep/friends_indoor_clip.mp4'
+            filename = '/home/sudeep/projects/AmazonLab126/deep-3DHyPE' \
+                       '/Dataset/S1/Videos/_ALL_1.60457274.mp4'
+            #filename = '/home/sudeep/friends_indoor_clip.mp4'
+            filename = '/home/sudeep/dance.mp4'
+            filename = '/home/sudeep/100P.mp4'
+            filename = '/home/sudeep/sit.mp4'
+            filename = '/home/sudeep/0CVZN.mp4'
+            #filename = '/home/sudeep/0J471.mp4'
+
             vid = imageio.get_reader(filename, 'ffmpeg')
-            for step in range(600   , 6448, 20):
+            for step in range(50, 2400, 5):
                 image_ = vid.get_data(step)
-                image_ = image_[:, 280:1000, :]
+                #image_ = image_[100:600, 200:700, :]
+                #image_ = image_[:, 180:1000, :]
+                #image_ = image_[200:800, 200:800, :]
                 image_l = misc.imresize(image_, (256, 256)).astype(
                     np.float32)
                 _x = []
@@ -90,13 +101,19 @@ def main(_):
                 steps = map(int, FLAG.structure_string.split('-'))
                 ypy = 0
                 figs = []
-                
+                ouu = output_[0][-1][-1][-1]
+                ouu[ouu<0] = 0
+                ouu_ = np.reshape(ouu[0], [64, 64, 64, 14])
+                ouu = ndimage.median_filter(ouu_, size=[2,2,2,1])
+                ouu = np.reshape(ouu,[1,64,64,64*14])
                 for idh in xrange(len(map(int, FLAG.gpu_string.split('-')))):
+                    heat_map = np.sum(ouu[0], axis=-1)
                     pred_cords = utils.eval_utils.get_coordinate(
-                        output_[0][-1][-1][-1], steps, 14)
-                    
+                        ouu, steps, 14)
+                    ouu_ = np.reshape(ouu[0],[64,64,64,14])
+                    #utils.data_prep.plot_3d(np.sum(ouu_,axis=-1),threshold=0.7)
                     # print (pred_cords)
-                    heat_map = np.sum(output_[0][-1][-1][-1][0],axis=-1)
+                    
                     utils.test_utils.visualize_stickman(pred_cords[0],
                                                         image_, heat_map, step)
 

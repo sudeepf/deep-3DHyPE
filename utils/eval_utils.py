@@ -53,7 +53,6 @@ def compute_precision(prediction, gt, steps, mul_factor, num_joints):
 
 def get_coordinate(prediction, steps, num_joints):
     out_shape = np.shape(prediction)
-    print(out_shape)
     pred_ = np.reshape(prediction, (out_shape[0], out_shape[1], out_shape[2],
                                     out_shape[2], num_joints))
     # print(np.shape(pred_))

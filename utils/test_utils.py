@@ -58,19 +58,20 @@ class TestDataHolder():
     
     def get_test_set(self, train, imgFiles, pose2, pose3):
         """Make a TensorFlow feed_dict: maps data onto Tensor placeholders."""
-        
+
+        print("qweqwe",pose3)
         image_b, pose2_b, pose3_b = utils.data_prep.get_batch(imgFiles,
-                                                              pose2, pose3,
-                                                              self.FLAG)
-        
+                                                              pose2, pose3)
+        print("qweqwe12",pose3_b)
         image_b, pose2_b, pose3_b = utils.data_prep.crop_data_top_down(image_b,
                                                                        pose2_b,
-                                                                       pose3_b)
-        
-        image, pose2, pose3, vec_x, vec_y, vec_z = \
+                                                                       pose3_b,
+                                                                       self.FLAG)
+        print("qweqwesad",pose3_b)
+        image, pose2, pose3, vec_64, vec_32, vec_16, vec_8 = \
             utils.data_prep.get_vector_gt(image_b, pose2_b, pose3_b, self.FLAG)
         
-        return image, vec_x, vec_y, vec_z, pose3
+        return image, vec_64[:,0], vec_64[:,1], vec_64[:,2], pose3
     
     def get_next_train_batch(self):
         """
@@ -93,58 +94,134 @@ class TestDataHolder():
 
 def visualize_stickman(cords, image, heat_map, ind):
     fig = plt.figure()
-    
+    #cords[:,2] = 64 - cords[:,2]
     image_ = fig.add_subplot(1, 3, 1)
     plt.imshow(image, cmap='gray')
     # Plotting all the limbs individually
     image_ = fig.add_subplot(1,3,2)
 
     plt.imshow(heat_map)
+    cords1 = cords.astype(np.int32)
+    cords1[:,0] = cords[:,1].astype(np.int32)
+    cords1[:, 1] = cords[:, 0].astype(np.int32)
     
+    print ([cords1[0,0],cords1[0,1]])
+    print (heat_map[cords1[0,0],cords1[0,1]])
     ax = fig.add_subplot(1, 3, 3, projection='3d')
-    ax.plot([cords[0, 0], cords[1, 0]], [cords[0, 1], cords[1, 1]],
-            [cords[0, 2],
-             cords[1, 2]])
-    ax.plot([cords[0, 0], cords[1, 0]], [cords[0, 1], cords[1, 1]],
-            [cords[0, 2],
-             cords[1, 2]], 'b')
-    ax.plot([cords[1, 0], cords[2, 0]], [cords[1, 1], cords[2, 1]],
-            [cords[1, 2],
-             cords[2, 2]], 'g')
-    ax.plot([cords[2, 0], cords[3, 0]], [cords[2, 1], cords[3, 1]],
-            [cords[2, 2],
-             cords[3, 2]], 'r')
-    ax.plot([cords[3, 0], cords[4, 0]], [cords[3, 1], cords[4, 1]],
+    if heat_map[cords1[0,0],cords1[0,1]] > 12.0 and \
+            heat_map[cords1[1,0], cords1[1,1]] > 12.0:
+        ax.plot([cords[0, 0], cords[1, 0]], [cords[0, 1], cords[1, 1]],
+                [cords[0, 2],
+                 cords[1, 2]])
+    
+    if heat_map[cords1[0, 0], cords1[0, 1]] > 12.0 and \
+            heat_map[cords1[1, 0], cords1[1, 1]] > 12.0:
+
+        ax.plot([cords[0, 0], cords[1, 0]], [cords[0, 1], cords[1, 1]],
+                [cords[0, 2],
+                 cords[1, 2]], 'b')
+    
+    
+    if heat_map[cords1[1, 0], cords1[1, 1]] > 12.0 and \
+            heat_map[cords1[2, 0], cords1[2, 1]] > 12.0:
+
+        ax.plot([cords[1, 0], cords[2, 0]], [cords[1, 1], cords[2, 1]],
+                [cords[1, 2],
+                 cords[2, 2]], 'g')
+    
+    
+    if heat_map[cords1[2, 0], cords1[2, 1]] > 12.0 and \
+            heat_map[cords1[3, 0], cords1[3, 1]] > 12.0:
+
+        ax.plot([cords[2, 0], cords[3, 0]], [cords[2, 1], cords[3, 1]],
+                [cords[2, 2],
+                 cords[3, 2]], 'r')
+    
+    
+    if heat_map[cords1[3, 0], cords1[3, 1]] > 12.0 and \
+            heat_map[cords1[4, 0], cords1[4, 1]] > 12.0:
+
+        ax.plot([cords[3, 0], cords[4, 0]], [cords[3, 1], cords[4, 1]],
             [cords[3, 2],
              cords[4, 2]], 'm')
-    ax.plot([cords[1, 0], cords[5, 0]], [cords[1, 1], cords[5, 1]],
+    
+    
+    if heat_map[cords1[5, 0], cords1[5, 1]] > 12.0 and \
+            heat_map[cords1[1, 0], cords1[1, 1]] > 12.0:
+
+        ax.plot([cords[1, 0], cords[5, 0]], [cords[1, 1], cords[5, 1]],
             [cords[1, 2],
              cords[5, 2]], 'g')
-    ax.plot([cords[5, 0], cords[6, 0]], [cords[5, 1], cords[6, 1]],
+    
+    
+    if heat_map[cords1[5, 0], cords1[5, 1]] > 12.0 and \
+            heat_map[cords1[6, 0], cords1[6, 1]] > 12.0:
+
+        ax.plot([cords[5, 0], cords[6, 0]], [cords[5, 1], cords[6, 1]],
             [cords[5, 2],
              cords[6, 2]], 'r')
-    ax.plot([cords[6, 0], cords[7, 0]], [cords[6, 1], cords[7, 1]],
+    
+    
+    if heat_map[cords1[6, 0], cords1[6, 1]] > 12.0 and \
+            heat_map[cords1[7, 0], cords1[7, 1]] > 12.0:
+
+        ax.plot([cords[6, 0], cords[7, 0]], [cords[6, 1], cords[7, 1]],
             [cords[6, 2],
              cords[7, 2]], 'm')
-    ax.plot([cords[2, 0], cords[8, 0]], [cords[2, 1], cords[8, 1]],
+    
+    
+    if heat_map[cords1[2, 0], cords1[2, 1]] > 12.0 and \
+            heat_map[cords1[8, 0], cords1[8, 1]] > 12.0:
+
+        ax.plot([cords[2, 0], cords[8, 0]], [cords[2, 1], cords[8, 1]],
             [cords[2, 2],
              cords[8, 2]], 'c')
-    ax.plot([cords[5, 0], cords[11, 0]], [cords[5, 1], cords[11, 1]],
+    
+    
+    if heat_map[cords1[5, 0], cords1[5, 1]] > 12.0 and \
+            heat_map[cords1[11, 0], cords1[11, 1]] > 12.0:
+
+        ax.plot([cords[5, 0], cords[11, 0]], [cords[5, 1], cords[11, 1]],
             [cords[5, 2],
              cords[11, 2]], 'c')
-    ax.plot([cords[8, 0], cords[11, 0]], [cords[8, 1], cords[11, 1]],
+    
+    
+    if heat_map[cords1[11, 0], cords1[11, 1]] > 12.0 and \
+            heat_map[cords1[8, 0], cords1[8, 1]] > 12.0:
+
+        ax.plot([cords[8, 0], cords[11, 0]], [cords[8, 1], cords[11, 1]],
             [cords[8, 2],
              cords[11, 2]], 'c')
-    ax.plot([cords[8, 0], cords[9, 0]], [cords[8, 1], cords[9, 1]],
+    
+    
+    if heat_map[cords1[8, 0], cords1[8, 1]] > 12.0 and \
+            heat_map[cords1[9, 0], cords1[9, 1]] > 12.0:
+
+        ax.plot([cords[8, 0], cords[9, 0]], [cords[8, 1], cords[9, 1]],
             [cords[8, 2],
              cords[9, 2]], 'k')
-    ax.plot([cords[9, 0], cords[10, 0]], [cords[9, 1], cords[10, 1]],
+    
+    
+    if heat_map[cords1[9, 0], cords1[9, 1]] > 12.0 and \
+            heat_map[cords1[10, 0], cords1[10, 1]] > 12.0:
+
+        ax.plot([cords[9, 0], cords[10, 0]], [cords[9, 1], cords[10, 1]],
             [cords[9, 2],
              cords[10, 2]], 'r')
-    ax.plot([cords[11, 0], cords[12, 0]], [cords[11, 1], cords[12, 1]],
+    
+    
+    if heat_map[cords1[11, 0], cords1[11, 1]] > 12.0 and \
+            heat_map[cords1[12, 0], cords1[12, 1]] > 12.0:
+
+        ax.plot([cords[11, 0], cords[12, 0]], [cords[11, 1], cords[12, 1]],
             [cords[11, 2],
-             cords[12, 2]], 'b')
-    ax.plot([cords[12, 0], cords[13, 0]], [cords[12, 1], cords[13, 1]],
+             cords[12, 2]], 'k')
+    
+    
+    if heat_map[cords1[12, 0], cords1[12, 1]] > 12.0 and \
+            heat_map[cords1[13, 0], cords1[13, 1]] > 12.0:
+
+        ax.plot([cords[12, 0], cords[13, 0]], [cords[12, 1], cords[13, 1]],
             [cords[12, 2],
              cords[13, 2]], 'r')
     
@@ -154,4 +231,4 @@ def visualize_stickman(cords, image, heat_map, ind):
     ax.view_init(-50, -50)
     
     plt.show()
-    #plt.savefig('./vids/foo_' + str(ind) + '.png', bbox_inches='tight')
+    #plt.savefig('./vids4/foo_' + str(ind) + '.png', bbox_inches='tight')
