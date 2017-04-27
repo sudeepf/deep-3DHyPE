@@ -80,15 +80,16 @@ def main(_):
                 steps = map(int, FLAG.structure_string.split('-'))
                 ypy = 0
                 for idh in xrange(len(map(int, FLAG.gpu_string.split('-')))):
-                    ypy += utils.eval_utils.compute_precision(output_[idh][0],
+                    print(np.shape(output_[idh][-1][-1][-1]))
+                    ypy += utils.eval_utils.compute_precision(output_[idh][-1][-1][-1],
                                                               gt[idh],
                                                               steps,
                                                               FLAG.mul_factor,
                                                               14)
 
-                    pred_cords = utils.eval_utils.get_coordinate(output_,
-                                                                 steps, 14)
-                    print(pred_cords)
+                    #pred_cords = utils.eval_utils.get_coordinate(output_,
+                    #                                             steps, 14)
+                    #print(pred_cords)
                     
                 ypy /= len(map(int, FLAG.gpu_string.split('-')))
                 print("Mean Error", np.sum(ypy) / 14)

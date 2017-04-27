@@ -83,7 +83,7 @@ def main(_):
             #filename = '/home/sudeep/0J471.mp4'
 
             vid = imageio.get_reader(filename, 'ffmpeg')
-            for step in range(50, 2400, 5):
+            for step in range(50, 2400, 2):
                 image_ = vid.get_data(step)
                 #image_ = image_[100:600, 200:700, :]
                 #image_ = image_[:, 180:1000, :]
